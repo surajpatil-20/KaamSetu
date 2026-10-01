@@ -1,0 +1,94 @@
+.sidebar {
+    width: 240px;
+    min-height: calc(100vh - 72px);
+
+    background: var(--navy);
+
+    padding: 24px 14px;
+
+    position: fixed;
+
+    left: 0;
+    top: 72px;
+    bottom: 0;
+
+    z-index: 900;
+}
+
+/* Logo */
+
+.sidebar-logo {
+    padding: 4px 14px 28px;
+
+    font-size: 25px;
+    font-weight: 800;
+
+    letter-spacing: -1px;
+
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    margin-bottom: 20px;
+}
+
+.sidebar-logo .logo-kaam {
+    color: var(--primary);
+}
+
+.sidebar-logo .logo-setu {
+    color: white;
+}
+
+/* Navigation */
+
+.sidebar-navigation {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 6px;
+}
+
+/* Link */
+
+.sidebar-link {
+    display: flex;
+
+    align-items: center;
+
+    gap: 13px;
+
+    padding: 12px 14px;
+
+    border-radius: var(--radius-sm);
+
+    color: #cbd5e1;
+
+    text-decoration: none;
+
+    font-size: 14px;
+    font-weight: 500;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+.sidebar-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+
+    color: white;
+}
+
+/* Active */
+
+.sidebar-link-active {
+    background: var(--primary);
+
+    color: white;
+}
+
+.sidebar-link-active:hover {
+    background: var(--primary-dark);
+
+    color: white;
+}

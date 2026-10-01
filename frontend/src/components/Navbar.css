@@ -1,0 +1,126 @@
+.navbar {
+    height: 72px;
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 5%;
+
+    background: var(--surface);
+
+    border-bottom: 1px solid var(--border);
+
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+/* Logo */
+
+.navbar-logo {
+    text-decoration: none;
+
+    font-size: 26px;
+    font-weight: 800;
+
+    letter-spacing: -1px;
+}
+
+.logo-kaam {
+    color: var(--primary);
+}
+
+.logo-setu {
+    color: var(--navy);
+}
+
+/* Navigation */
+
+.navbar-links {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+}
+
+.navbar-links a {
+    color: var(--text);
+
+    text-decoration: none;
+
+    font-size: 14px;
+    font-weight: 500;
+
+    transition: color 0.2s ease;
+}
+
+.navbar-links a:hover {
+    color: var(--primary);
+}
+
+/* Right actions */
+
+.navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.navbar-icon-button {
+    width: 40px;
+    height: 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: none;
+    background: transparent;
+
+    color: var(--navy);
+
+    border-radius: var(--radius-sm);
+
+    cursor: pointer;
+
+    transition: background 0.2s ease;
+}
+
+.navbar-icon-button:hover {
+    background: #fff7ed;
+}
+
+.navbar-login,
+.navbar-signup {
+    text-decoration: none;
+
+    padding: 10px 20px;
+
+    border-radius: var(--radius-sm);
+
+    font-size: 14px;
+    font-weight: 600;
+
+    transition: all 0.2s ease;
+}
+
+.navbar-login {
+    color: var(--navy);
+
+    border: 1px solid var(--navy);
+}
+
+.navbar-login:hover {
+    background: var(--navy);
+    color: white;
+}
+
+.navbar-signup {
+    color: white;
+    background: var(--primary);
+}
+
+.navbar-signup:hover {
+    background: var(--primary-dark);
+}

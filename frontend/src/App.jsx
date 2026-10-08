@@ -1,7 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 
 import Landing from "./pages/public/Landing";
-
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import VerifyPhone from "./pages/auth/VerifyPhone";
@@ -14,18 +13,23 @@ import WorkerDashboard from "./pages/worker/WorkerDashboard";
 import AvailableWorks from "./pages/worker/AvailableWorks";
 import MyApplications from "./pages/worker/MyApplications";
 
+import ProtectedRoute from "./routes/ProtectedRoute";
+import RoleRoute from "./routes/RoleRoute";
+
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
+
 function App() {
+
     return (
         <Routes>
 
-            {/* Public */}
+            {/* Public Routes */}
 
             <Route
                 path="/"
                 element={<Landing />}
             />
-
-            {/* Authentication */}
 
             <Route
                 path="/login"
@@ -42,39 +46,69 @@ function App() {
                 element={<VerifyPhone />}
             />
 
-            {/* Customer */}
-
             <Route
-                path="/customer/dashboard"
-                element={<CustomerDashboard />}
+                path="/forgot-password"
+                element={<ForgotPassword />}
+            />
+                
+            <Route
+                path="/reset-password"
+                element={<ResetPassword />}
             />
 
-            <Route
-                path="/customer/post-work"
-                element={<PostWork />}
-            />
 
-            <Route
-                path="/customer/works"
-                element={<MyWorks />}
-            />
+            {/* Protected Routes */}
 
-            {/* Worker */}
+            <Route element={<ProtectedRoute />}>
 
-            <Route
-                path="/worker/dashboard"
-                element={<WorkerDashboard />}
-            />
+                {/* Customer Routes */}
 
-            <Route
-                path="/worker/works"
-                element={<AvailableWorks />}
-            />
+                <Route element={
+                    <RoleRoute allowedRole="CUSTOMER" />
+                }>
 
-            <Route
-                path="/worker/applications"
-                element={<MyApplications />}
-            />
+                    <Route
+                        path="/customer/dashboard"
+                        element={<CustomerDashboard />}
+                    />
+
+                    <Route
+                        path="/customer/post-work"
+                        element={<PostWork />}
+                    />
+
+                    <Route
+                        path="/customer/works"
+                        element={<MyWorks />}
+                    />
+
+                </Route>
+
+
+                {/* Worker Routes */}
+
+                <Route element={
+                    <RoleRoute allowedRole="WORKER" />
+                }>
+
+                    <Route
+                        path="/worker/dashboard"
+                        element={<WorkerDashboard />}
+                    />
+
+                    <Route
+                        path="/worker/works"
+                        element={<AvailableWorks />}
+                    />
+
+                    <Route
+                        path="/worker/applications"
+                        element={<MyApplications />}
+                    />
+
+                </Route>
+
+            </Route>
 
         </Routes>
     );

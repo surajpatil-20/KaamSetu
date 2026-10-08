@@ -1,0 +1,61 @@
+.register-card {
+    max-width: 470px;
+}
+
+.role-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.role-option {
+    min-height: 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 10px;
+
+    border: 1px solid #d1d5db;
+    border-radius: 9px;
+
+    background: #ffffff;
+
+    color: #374151;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+.role-option:hover {
+    border-color: #f59e0b;
+}
+
+.role-option.active {
+    border-color: #f59e0b;
+
+    background: #fff7ed;
+
+    color: #d97706;
+
+    box-shadow:
+        0 0 0 2px rgba(245, 158, 11, 0.1);
+}
+
+@media (max-width: 480px) {
+
+    .role-options {
+        grid-template-columns: 1fr;
+    }
+
+}

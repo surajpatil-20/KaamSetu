@@ -16,11 +16,13 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 
-from .models import User, PasswordResetOTP
+from .models import User, PasswordResetOTP ,PhoneVerificationOTP
 from .serializers import (
+    RegisterSerializer,
     ForgotPasswordSerializer,
     VerifyOTPSerializer,
     ResetPasswordSerializer,
+    VerifyPhoneSerializer,
 )
 from .otp import (
     generate_otp,
@@ -38,6 +40,31 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
 
+    @transaction.atomic
+    def perform_create(self, serializer):
+
+        user = serializer.save()
+
+        otp = generate_otp()
+
+        PhoneVerificationOTP.objects.filter(
+            user=user,
+            is_used=False
+        ).update(
+            is_used=True
+        )
+
+        PhoneVerificationOTP.objects.create(
+            user=user,
+            otp_hash=hash_otp(otp),
+            expires_at=otp_expiry_time()
+        )
+
+        send_otp(
+            user,
+            otp
+        )
+
 class ProfileView(APIView):
 
     permission_classes = [IsAuthenticated]
@@ -50,6 +77,153 @@ class ProfileView(APIView):
             "username": user.username,
             "email": user.email,
             "role": user.role,
+        })
+
+class VerifyPhoneView(generics.GenericAPIView):
+
+    serializer_class = VerifyPhoneSerializer
+    permission_classes = [AllowAny]
+
+    @transaction.atomic
+    def post(self, request):
+
+        serializer = self.get_serializer(
+            data=request.data
+        )
+
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        phone_number = (
+            serializer.validated_data[
+                "phone_number"
+            ]
+            .strip()
+        )
+
+        otp = serializer.validated_data[
+            "otp"
+        ]
+
+        # Normalize phone number
+        if phone_number.startswith("+91"):
+            number = phone_number[3:]
+        else:
+            number = phone_number
+
+        number = (
+            number
+            .replace(" ", "")
+            .replace("-", "")
+        )
+
+        if (
+            not number.isdigit()
+            or len(number) != 10
+        ):
+            raise ValidationError(
+                "Enter a valid 10-digit Indian mobile number."
+            )
+
+        normalized_phone = "+91" + number
+
+        user = User.objects.filter(
+            phone_number=normalized_phone
+        ).first()
+
+        if user is None:
+            raise ValidationError(
+                "Invalid OTP."
+            )
+
+        if user.phone_verified:
+            return Response({
+                "message":
+                    "Phone number is already verified."
+            })
+
+        otp_record = (
+            PhoneVerificationOTP.objects
+            .select_for_update()
+            .filter(
+                user=user,
+                is_used=False
+            )
+            .order_by("-created_at")
+            .first()
+        )
+
+        if otp_record is None:
+            raise ValidationError(
+                "Invalid or expired OTP."
+            )
+
+        # Check expiration
+        if otp_record.expires_at < timezone.now():
+
+            otp_record.is_used = True
+
+            otp_record.save(
+                update_fields=["is_used"]
+            )
+
+            raise ValidationError(
+                "OTP has expired."
+            )
+
+        # Check maximum attempts
+        if otp_record.attempts >= OTP_MAX_ATTEMPTS:
+
+            otp_record.is_used = True
+
+            otp_record.save(
+                update_fields=["is_used"]
+            )
+
+            raise ValidationError(
+                "Too many OTP attempts. Request a new OTP."
+            )
+
+        # Count this attempt
+        otp_record.attempts += 1
+
+        # Verify OTP
+        if not verify_otp_hash(
+            otp,
+            otp_record.otp_hash
+        ):
+
+            otp_record.save(
+                update_fields=["attempts"]
+            )
+
+            raise ValidationError(
+                "Invalid OTP."
+            )
+
+        # OTP verified
+        otp_record.is_used = True
+
+        otp_record.save(
+            update_fields=[
+                "attempts",
+                "is_used"
+            ]
+        )
+
+        # Verify phone
+        user.phone_verified = True
+
+        user.save(
+            update_fields=[
+                "phone_verified"
+            ]
+        )
+
+        return Response({
+            "message":
+                "Phone number verified successfully."
         })
 
 class ForgotPasswordView(generics.GenericAPIView):
@@ -309,3 +483,190 @@ class ResetPasswordView(generics.GenericAPIView):
                 "Please login with your new password."
             )
         })
+    
+
+class ResendPhoneOTPView(generics.GenericAPIView):
+
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+
+        phone_number = (
+            request.data.get("phone_number", "")
+            .strip()
+        )
+
+        if phone_number.startswith("+91"):
+            number = phone_number[3:]
+        else:
+            number = phone_number
+
+        number = (
+            number
+            .replace(" ", "")
+            .replace("-", "")
+        )
+
+        if (
+            not number.isdigit()
+            or len(number) != 10
+        ):
+            raise ValidationError(
+                "Enter a valid 10-digit Indian mobile number."
+            )
+
+        normalized_phone = "+91" + number
+
+        user = User.objects.filter(
+            phone_number=normalized_phone
+        ).first()
+
+        # Do not reveal account existence.
+        generic_response = Response({
+            "message": (
+                "If the account exists and is "
+                "not verified, a new OTP has been sent."
+            )
+        })
+
+        if user is None:
+            return generic_response
+
+        if user.phone_verified:
+            return generic_response
+
+        cache_key = (
+            f"phone_verification_otp:{user.id}"
+        )
+
+        # 60-second cooldown
+        if cache.get(cache_key):
+            return generic_response
+
+        otp = generate_otp()
+
+        PhoneVerificationOTP.objects.filter(
+            user=user,
+            is_used=False
+        ).update(
+            is_used=True
+        )
+
+        PhoneVerificationOTP.objects.create(
+            user=user,
+            otp_hash=hash_otp(otp),
+            expires_at=otp_expiry_time()
+        )
+
+        cache.set(
+            cache_key,
+            True,
+            timeout=60
+        )
+
+        send_otp(
+            user,
+            otp
+        )
+
+        return generic_response  
+
+
+
+class ResendPasswordResetOTPView(
+    generics.GenericAPIView
+):
+
+    serializer_class = ForgotPasswordSerializer
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+
+        serializer = self.get_serializer(
+            data=request.data
+        )
+
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        identifier = (
+            serializer.validated_data[
+                "identifier"
+            ].strip()
+        )
+
+        normalized_phone = identifier
+
+        if normalized_phone.startswith("+91"):
+            normalized_phone = normalized_phone[3:]
+
+        normalized_phone = (
+            normalized_phone
+            .replace(" ", "")
+            .replace("-", "")
+        )
+
+        user = User.objects.filter(
+            username=identifier
+        ).first()
+
+        if user is None:
+
+            user = User.objects.filter(
+                phone_number="+91" +
+                normalized_phone
+            ).first()
+
+        generic_response = Response({
+            "message": (
+                "If an account exists with this information, "
+                "a new OTP has been sent."
+            )
+        })
+
+        if user is None:
+            return generic_response
+
+        if (
+            not user.phone_number
+            or not user.phone_verified
+        ):
+            return generic_response
+
+        cache_key = (
+            f"password_reset_otp:{user.id}"
+        )
+
+        if cache.get(cache_key):
+            return generic_response
+
+        otp = generate_otp()
+
+        PasswordResetOTP.objects.filter(
+            user=user,
+            is_used=False
+        ).update(
+            is_used=True
+        )
+
+        PasswordResetOTP.objects.create(
+            user=user,
+            otp_hash=hash_otp(otp),
+            expires_at=otp_expiry_time()
+        )
+
+        cache.set(
+            cache_key,
+            True,
+            timeout=60
+        )
+
+        send_otp(
+            user,
+            otp
+        )
+
+        return generic_response  

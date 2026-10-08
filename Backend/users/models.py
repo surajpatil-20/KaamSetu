@@ -71,6 +71,45 @@ class PasswordResetOTP(models.Model):
     def __str__(self):
         return f"Password reset OTP - {self.user.username}"
 
+
+class PhoneVerificationOTP(models.Model):
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="phone_verification_otps"
+    )
+
+    otp_hash = models.CharField(
+        max_length=128
+    )
+
+    expires_at = models.DateTimeField()
+
+    attempts = models.PositiveSmallIntegerField(
+        default=0
+    )
+
+    is_used = models.BooleanField(
+        default=False
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+
+        indexes = [
+            models.Index(
+                fields=["user", "created_at"]
+            ),
+
+            models.Index(
+                fields=["expires_at"]
+            ),
+        ]
+
 class CustomerProfile(models.Model):
     user = models.OneToOneField(
         User,

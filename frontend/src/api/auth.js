@@ -67,3 +67,22 @@ export const getProfile = async () => {
     const response = await api.get("/auth/profile/");
     return response.data;
 };
+
+export const resendPhoneOTP = async (data) => {
+    const response = await api.post(
+        "/auth/resend-phone-otp/",
+        data
+    );
+
+    return response.data;
+};
+
+export const resendPasswordOTP = async (data) => {
+
+    const response = await api.post(
+        "/auth/resend-password-otp/",
+        data
+    );
+
+    return response.data;
+};

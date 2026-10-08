@@ -5,7 +5,10 @@ from .views import (
     ForgotPasswordView,
     VerifyOTPView,
     ResetPasswordView,
-    ProfileView
+    VerifyPhoneView,
+    ProfileView,
+    ResendPhoneOTPView,
+    ResendPasswordResetOTPView
 )
 
 urlpatterns = [
@@ -27,6 +30,22 @@ urlpatterns = [
         "reset-password/",
         ResetPasswordView.as_view(),
         name="reset-password"
+    ),
+    path(
+        "verify-phone/",
+        VerifyPhoneView.as_view(),
+        name="verify-phone"
+    ),
+    path(
+        "resend-phone-otp/",
+        ResendPhoneOTPView.as_view(),
+        name="resend-phone-otp"
+    ),
+
+    path(
+        "resend-password-otp/",
+        ResendPasswordResetOTPView.as_view(),
+        name="resend-password-otp"
     ),
 
 ]

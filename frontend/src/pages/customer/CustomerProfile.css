@@ -1,0 +1,312 @@
+.customer-profile-page {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 8px 0 32px;
+}
+
+.customer-profile-heading {
+    margin-bottom: 24px;
+}
+
+.customer-profile-heading h1 {
+    margin: 0 0 8px;
+    color: var(--navy);
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.customer-profile-heading p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.customer-profile-card {
+    padding: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+}
+
+.customer-profile-photo-section {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding-bottom: 24px;
+}
+
+.customer-profile-avatar {
+    width: 104px;
+    height: 104px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: var(--primary-dark);
+    background: #FEF3C7;
+    border: 3px solid #FDE68A;
+    border-radius: 50%;
+}
+
+.customer-profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.customer-profile-photo-info h3 {
+    margin: 0 0 6px;
+    color: var(--text);
+    font-size: 17px;
+}
+
+.customer-profile-photo-info p {
+    margin: 0 0 12px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.customer-profile-upload {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 13px;
+    color: var(--navy);
+    background: #FFF7ED;
+    border: 1px solid #FED7AA;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.customer-profile-upload:hover {
+    background: #FFEDD5;
+}
+
+.customer-profile-divider {
+    height: 1px;
+    margin-bottom: 24px;
+    background: var(--border);
+}
+
+.customer-profile-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.customer-profile-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.customer-profile-field > label {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.customer-profile-field input {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 11px 12px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+    font: inherit;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.customer-profile-field input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.14);
+}
+
+.customer-profile-field small {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.customer-profile-verification {
+    min-height: 44px;
+    box-sizing: border-box;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 9px 12px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.profile-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 9px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.profile-status.verified {
+    color: #166534;
+    background: #DCFCE7;
+}
+
+.profile-status.unverified {
+    color: #92400E;
+    background: #FEF3C7;
+}
+
+.customer-profile-message {
+    margin-top: 22px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.customer-profile-message.error {
+    color: #991B1B;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+}
+
+.customer-profile-message.success {
+    color: #166534;
+    background: #F0FDF4;
+    border: 1px solid #BBF7D0;
+}
+
+.customer-profile-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 28px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+}
+
+.customer-profile-save {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-height: 44px;
+    padding: 11px 20px;
+    color: #FFFFFF;
+    background: var(--primary-dark);
+    border: none;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.customer-profile-save:hover:not(:disabled) {
+    background: #B45309;
+}
+
+.customer-profile-save:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.customer-profile-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 250px;
+    color: var(--text-secondary);
+}
+
+.profile-spinner {
+    animation: customer-profile-spin 1s linear infinite;
+}
+
+@keyframes customer-profile-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 640px) {
+    .customer-profile-page {
+        padding-top: 0;
+    }
+
+    .customer-profile-heading h1 {
+        font-size: 24px;
+    }
+
+    .customer-profile-card {
+        padding: 20px 16px;
+    }
+
+    .customer-profile-photo-section {
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .customer-profile-avatar {
+        width: 78px;
+        height: 78px;
+    }
+
+    .customer-profile-fields {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .customer-profile-actions {
+        justify-content: stretch;
+    }
+
+    .customer-profile-save {
+        width: 100%;
+    }
+}
+.customer-profile-about {
+    grid-column: 1 / -1;
+}
+
+.customer-profile-about textarea {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 110px;
+    padding: 12px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+    font: inherit;
+    font-size: 14px;
+    line-height: 1.6;
+    resize: vertical;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.customer-profile-about textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.14);
+}
+
+.customer-profile-about textarea::placeholder {
+    color: var(--text-secondary);
+}

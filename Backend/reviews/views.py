@@ -104,3 +104,24 @@ class WorkerReviewListView(generics.GenericAPIView):
                 many=True
             ).data
         })
+
+
+class MyReviewsView(generics.ListAPIView):
+
+    serializer_class = ReviewSerializer
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    def get_queryset(self):
+
+        return Review.objects.filter(
+            customer=self.request.user
+        ).select_related(
+            "work",
+            "customer",
+            "worker"
+        ).order_by(
+            "-created_at"
+        )

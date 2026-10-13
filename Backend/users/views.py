@@ -16,7 +16,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 
-from .models import User, PasswordResetOTP ,PhoneVerificationOTP
+from .models import User, PasswordResetOTP ,PhoneVerificationOTP ,CustomerProfile,WorkerProfile
 from .serializers import (
     RegisterSerializer,
     ForgotPasswordSerializer,
@@ -32,6 +32,9 @@ from .otp import (
     send_otp,
     OTP_MAX_ATTEMPTS,
 )
+
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
 
 
 
@@ -65,19 +68,151 @@ class RegisterView(generics.CreateAPIView):
             otp
         )
 
-class ProfileView(APIView):
 
+
+
+
+class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
 
     def get(self, request):
         user = request.user
+
+        if user.role == User.Role.WORKER:
+            profile, _ = WorkerProfile.objects.get_or_create(
+                user=user
+            )
+
+            profile_data = {
+                "bio": profile.bio,
+                "skills": profile.skills,
+                "experience": profile.experience,
+                "hourly_rate": profile.hourly_rate,
+            }
+        else:
+            profile, _ = CustomerProfile.objects.get_or_create(
+                user=user
+            )
+
+            profile_data = {
+                "about": profile.about,
+            }
+
+        profile_photo_url = None
+
+        if profile.profile_photo:
+            profile_photo_url = request.build_absolute_uri(
+                profile.profile_photo.url
+            )
 
         return Response({
             "id": user.id,
             "username": user.username,
             "email": user.email,
             "role": user.role,
+            "phone_number": user.phone_number or "",
+            "phone_verified": user.phone_verified,
+            "profile_photo": profile_photo_url,
+            **profile_data,
         })
+
+    def patch(self, request):
+        user = request.user
+
+        if user.role == User.Role.WORKER:
+            profile, _ = WorkerProfile.objects.get_or_create(
+                user=user
+            )
+        else:
+            profile, _ = CustomerProfile.objects.get_or_create(
+                user=user
+            )
+
+        username = request.data.get(
+            "username", user.username
+        ).strip()
+
+        email = request.data.get(
+            "email", user.email
+        ).strip()
+
+        if not username:
+            raise ValidationError({
+                "username": "Username is required."
+            })
+
+        if User.objects.exclude(pk=user.pk).filter(
+            username=username
+        ).exists():
+            raise ValidationError({
+                "username": "This username is already taken."
+            })
+
+        if email and User.objects.exclude(pk=user.pk).filter(
+            email__iexact=email
+        ).exists():
+            raise ValidationError({
+                "email": "This email is already in use."
+            })
+
+        user.username = username
+        user.email = email
+        user.save(update_fields=["username", "email"])
+
+        # Profile photo
+        if "profile_photo" in request.FILES:
+            profile.profile_photo = request.FILES["profile_photo"]
+
+        # Customer profile fields
+        if user.role == User.Role.CUSTOMER:
+            if "about" in request.data:
+                profile.about = request.data.get(
+                    "about", ""
+                ).strip()
+
+        # Worker profile fields
+        else:
+            if "bio" in request.data:
+                profile.bio = request.data.get(
+                    "bio", ""
+                ).strip()
+
+            if "skills" in request.data:
+                profile.skills = request.data.get(
+                    "skills", ""
+                ).strip()
+
+            if "experience" in request.data:
+                try:
+                    experience = int(request.data["experience"])
+                    if experience < 0:
+                        raise ValueError
+                    profile.experience = experience
+                except (ValueError, TypeError):
+                    raise ValidationError({
+                        "experience": "Experience must be a non-negative whole number."
+                    })
+
+            if "hourly_rate" in request.data:
+                value = request.data.get("hourly_rate", "").strip()
+
+                if value == "":
+                    profile.hourly_rate = None
+                else:
+                    try:
+                        rate = float(value)
+                        if rate < 0:
+                            raise ValueError
+                        profile.hourly_rate = rate
+                    except (ValueError, TypeError):
+                        raise ValidationError({
+                            "hourly_rate": "Enter a valid non-negative hourly rate."
+                        })
+
+        profile.save()
+
+        return self.get(request)
 
 class VerifyPhoneView(generics.GenericAPIView):
 

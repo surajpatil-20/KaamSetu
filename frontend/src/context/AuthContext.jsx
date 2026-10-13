@@ -67,22 +67,33 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         const loadProfile = async () => {
             if (!accessToken) {
+                setLoading(false);
                 return;
             }
-
+        
             try {
+                setLoading(true);
+            
                 const profile = await getProfile();
+            
                 setUser(profile);
             } catch (error) {
-                console.error(
-                    "Failed to load profile:",
-                    error
-                );
-
-                logout();
+                console.error("Failed to load profile:", error);
+            
+                // Only clear authentication when the token
+                // is actually rejected by the backend.
+                if (error.response?.status === 401) {
+                    localStorage.removeItem("accessToken");
+                    localStorage.removeItem("refreshToken");
+                
+                    setAccessToken(null);
+                    setUser(null);
+                }
+            } finally {
+                setLoading(false);
             }
         };
-
+    
         loadProfile();
     }, [accessToken]);
 

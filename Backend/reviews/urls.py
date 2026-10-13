@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import CreateReviewView , WorkerReviewListView
+from .views import CreateReviewView , WorkerReviewListView ,MyReviewsView
 
 
 urlpatterns = [
@@ -15,6 +15,12 @@ urlpatterns = [
     "worker/<int:worker_id>/",
     WorkerReviewListView.as_view(),
     name="worker-reviews"
+    ),
+
+    path(
+        "my-reviews/",
+        MyReviewsView.as_view(),
+        name="my-reviews"
     ),
 
 ]

@@ -122,6 +122,11 @@ class CustomerProfile(models.Model):
         blank=True
     )
 
+    about = models.TextField(
+        blank=True,
+        max_length=500
+    )
+
     profile_photo = models.ImageField(
         upload_to="customers/",
         blank=True,

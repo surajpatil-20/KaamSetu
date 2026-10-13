@@ -86,3 +86,14 @@ export const resendPasswordOTP = async (data) => {
 
     return response.data;
 };
+
+
+export const updateProfile = async (data) => {
+    const response = await api.patch(
+        "/auth/profile/",
+        data
+    );
+
+    return response.data;
+};
+

@@ -98,6 +98,21 @@ class WorkApplicationsView(generics.ListAPIView):
         ).order_by("-applied_at")
 
 
+class MyApplicationsView(generics.ListAPIView):
+    serializer_class = ApplicationSerializer
+    permission_classes = [
+        IsAuthenticated,
+        IsWorker
+    ]
+
+    def get_queryset(self):
+        return Application.objects.filter(
+            worker=self.request.user
+        ).select_related(
+            "work"
+        ).order_by("-applied_at")
+
+
 class SelectWorkerView(generics.GenericAPIView):
 
     serializer_class = ApplicationSerializer

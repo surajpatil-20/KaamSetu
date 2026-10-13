@@ -1,126 +1,302 @@
 .navbar {
-    height: 72px;
-    width: 100%;
+    height: 64px;
 
     display: flex;
     align-items: center;
     justify-content: space-between;
 
-    padding: 0 5%;
+    padding: 0 24px;
 
-    background: var(--surface);
-
-    border-bottom: 1px solid var(--border);
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
 
     position: sticky;
     top: 0;
+
     z-index: 1000;
 }
 
-/* Logo */
+
+/* =========================
+   LEFT
+========================= */
+
+.navbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    flex-shrink: 0;
+}
 
 .navbar-logo {
-    text-decoration: none;
+    display: flex;
+    align-items: center;
 
-    font-size: 26px;
+    font-size: 20px;
     font-weight: 800;
 
-    letter-spacing: -1px;
+    text-decoration: none;
 }
 
 .logo-kaam {
-    color: var(--primary);
+    color: #172554;
 }
 
 .logo-setu {
-    color: var(--navy);
+    color: #f59e0b;
 }
 
-/* Navigation */
+
+/* =========================
+   MENU BUTTON
+========================= */
+
+.navbar-menu-button {
+    display: none;
+
+    width: 38px;
+    height: 38px;
+
+    align-items: center;
+    justify-content: center;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #f1f5f9;
+    color: #172554;
+
+    cursor: pointer;
+}
+
+.navbar-menu-button:hover {
+    background: #e2e8f0;
+}
+
+
+/* =========================
+   DESKTOP LINKS
+========================= */
 
 .navbar-links {
     display: flex;
     align-items: center;
-    gap: 32px;
+    gap: 28px;
+
+    margin-left: auto;
+    margin-right: 28px;
 }
 
 .navbar-links a {
-    color: var(--text);
-
-    text-decoration: none;
+    color: #374151;
 
     font-size: 14px;
     font-weight: 500;
+
+    text-decoration: none;
+
+    white-space: nowrap;
 
     transition: color 0.2s ease;
 }
 
 .navbar-links a:hover {
-    color: var(--primary);
+    color: #f59e0b;
 }
 
-/* Right actions */
+
+/* =========================
+   ACTIONS
+========================= */
 
 .navbar-actions {
     display: flex;
     align-items: center;
     gap: 12px;
+
+    flex-shrink: 0;
 }
 
 .navbar-icon-button {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
 
     display: flex;
     align-items: center;
     justify-content: center;
 
     border: none;
+    border-radius: 8px;
+
     background: transparent;
-
-    color: var(--navy);
-
-    border-radius: var(--radius-sm);
+    color: #172554;
 
     cursor: pointer;
-
-    transition: background 0.2s ease;
 }
 
 .navbar-icon-button:hover {
-    background: #fff7ed;
+    background: #f1f5f9;
 }
 
-.navbar-login,
-.navbar-signup {
-    text-decoration: none;
-
-    padding: 10px 20px;
-
-    border-radius: var(--radius-sm);
+.navbar-user {
+    color: #172554;
 
     font-size: 14px;
     font-weight: 600;
 
-    transition: all 0.2s ease;
+    white-space: nowrap;
 }
 
 .navbar-login {
-    color: var(--navy);
+    color: #172554;
 
-    border: 1px solid var(--navy);
+    font-size: 14px;
+    font-weight: 600;
+
+    text-decoration: none;
+
+    white-space: nowrap;
 }
 
-.navbar-login:hover {
-    background: var(--navy);
-    color: white;
+.navbar-signup,
+.navbar-logout {
+    padding: 9px 15px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #172554;
+    color: #ffffff;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+    white-space: nowrap;
+
+    transition: 0.2s ease;
 }
 
-.navbar-signup {
-    color: white;
-    background: var(--primary);
+.navbar-signup:hover,
+.navbar-logout:hover {
+    background: #0f172a;
 }
 
-.navbar-signup:hover {
-    background: var(--primary-dark);
+
+/* =========================
+   TABLET
+========================= */
+
+@media (max-width: 900px) {
+
+    .navbar-links {
+        gap: 16px;
+        margin-right: 16px;
+    }
+
+    .navbar-links a {
+        font-size: 13px;
+    }
+
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 768px) {
+
+    .navbar {
+        height: 60px;
+
+        padding: 0 12px;
+    }
+
+
+    /* Hamburger */
+
+    .navbar-menu-button {
+        display: flex;
+    }
+
+
+    /* Logo */
+
+    .navbar-logo {
+        font-size: 18px;
+    }
+
+
+    /* Hide desktop navigation */
+
+    .navbar-links {
+        display: none;
+    }
+
+
+    /* Right side */
+
+    .navbar-actions {
+        gap: 5px;
+    }
+
+
+    .navbar-icon-button {
+        display: none;
+    }
+
+
+    .navbar-user {
+        display: none;
+    }
+
+
+    .navbar-login {
+        display: none;
+    }
+
+
+    .navbar-signup,
+    .navbar-logout {
+        padding: 8px 12px;
+
+        font-size: 12px;
+    }
+
+}
+
+
+/* =========================
+   SMALL MOBILE
+========================= */
+
+@media (max-width: 420px) {
+
+    .navbar {
+        padding: 0 10px;
+    }
+
+    .navbar-left {
+        gap: 7px;
+    }
+
+    .navbar-logo {
+        font-size: 17px;
+    }
+
+    .navbar-menu-button {
+        width: 34px;
+        height: 34px;
+    }
+
+    .navbar-signup,
+    .navbar-logout {
+        padding: 7px 10px;
+    }
+
 }

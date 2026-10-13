@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import ApplicationCreateView ,WorkApplicationsView ,SelectWorkerView
+from .views import ApplicationCreateView ,WorkApplicationsView ,SelectWorkerView ,MyApplicationsView
 
 
 urlpatterns = [
@@ -17,9 +17,16 @@ urlpatterns = [
     ),
 
     path(
-    "<int:pk>/select/",
-    SelectWorkerView.as_view(),
-    name="select-worker"
-),
+        "<int:pk>/select/",
+        SelectWorkerView.as_view(),
+        name="select-worker"
+    ),
+    path(
+        "my/",
+        MyApplicationsView.as_view(),
+        name="my-applications"
+    ),
+
+
 
 ]

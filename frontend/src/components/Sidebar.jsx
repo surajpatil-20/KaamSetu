@@ -6,14 +6,15 @@ import {
     Star,
     User,
     PlusCircle,
-    Search
+    Search,
 } from "lucide-react";
+
 
 import { NavLink } from "react-router-dom";
 
 import "./Sidebar.css";
 
-function Sidebar({ role = "CUSTOMER" }) {
+function Sidebar({ role = "CUSTOMER", isOpen = false, onClose }) {
 
     const customerLinks = [
         {
@@ -91,13 +92,14 @@ function Sidebar({ role = "CUSTOMER" }) {
         },
     ];
 
-    const links =
-        role === "WORKER"
-            ? workerLinks
-            : customerLinks;
+    const links = role === "WORKER"
+        ? workerLinks
+        : customerLinks;
 
     return (
-        <aside className="sidebar">
+        <aside
+            className={`sidebar ${isOpen ? "sidebar-open" : ""}`}
+        >
 
             {/* Sidebar Logo */}
 
@@ -118,6 +120,7 @@ function Sidebar({ role = "CUSTOMER" }) {
                         <NavLink
                             key={link.path}
                             to={link.path}
+                            onClick={onClose}
                             className={({ isActive }) =>
                                 `sidebar-link ${
                                     isActive

@@ -15,6 +15,10 @@ class ApplicationSerializer(serializers.ModelSerializer):
     work = serializers.ReadOnlyField(
         source="work.id"
     )
+    
+    work_title = serializers.ReadOnlyField(
+        source="work.title"
+    )
 
     class Meta:
         model = Application
@@ -22,6 +26,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "work",
+            "work_title",
             "worker",
             "proposed_price",
             "message",
@@ -32,6 +37,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "work",
+            "work_title",
             "worker",
             "status",
             "applied_at",

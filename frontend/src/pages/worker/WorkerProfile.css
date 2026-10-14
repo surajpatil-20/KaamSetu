@@ -7,6 +7,10 @@
 
 .worker-profile-heading {
     margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
 }
 
 .worker-profile-heading h1 {
@@ -325,5 +329,128 @@
 
     .worker-profile-save {
         width: 100%;
+    }
+}
+
+
+/* Edit Profile button */
+
+.worker-profile-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 18px;
+    border: none;
+    border-radius: 9px;
+    background: #e87900;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    white-space: nowrap;
+}
+
+.worker-profile-edit:hover {
+    background: #c96500;
+}
+
+.worker-profile-edit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Read-only fields */
+
+.worker-profile-card input:disabled,
+.worker-profile-card textarea:disabled {
+    background: #f8fafc;
+    color: #334155;
+    border-color: #e2e8f0;
+    cursor: default;
+    opacity: 1;
+    -webkit-text-fill-color: #334155;
+}
+
+.worker-profile-card input:disabled {
+    pointer-events: none;
+}
+
+.worker-profile-card textarea:disabled {
+    resize: none;
+}
+
+/* Action buttons */
+
+.worker-profile-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.worker-profile-cancel,
+.worker-profile-save {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.worker-profile-cancel {
+    background: #f1f5f9;
+    color: #334155;
+}
+
+.worker-profile-cancel:hover {
+    background: #e2e8f0;
+}
+
+.worker-profile-save {
+    background: #e87900;
+    color: #ffffff;
+}
+
+.worker-profile-save:hover {
+    background: #c96500;
+}
+
+.worker-profile-cancel:disabled,
+.worker-profile-save:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+    .worker-profile-heading {
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .worker-profile-edit {
+        padding: 9px 12px;
+        font-size: 13px;
+    }
+
+    .worker-profile-actions {
+        justify-content: stretch;
+    }
+
+    .worker-profile-cancel,
+    .worker-profile-save {
+        flex: 1;
+        padding: 11px 12px;
     }
 }

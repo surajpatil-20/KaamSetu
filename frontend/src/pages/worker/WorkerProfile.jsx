@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import {
     UserRound,
@@ -6,6 +7,8 @@ import {
     LoaderCircle,
     BriefcaseBusiness,
     IndianRupee,
+    Pencil,
+    X,
 } from "lucide-react";
 
 import { useAuth } from "../../context/AuthContext";
@@ -24,10 +27,15 @@ export default function WorkerProfile() {
         hourly_rate: "",
     });
 
+    const [savedForm, setSavedForm] = useState(null);
     const [photo, setPhoto] = useState(null);
     const [photoPreview, setPhotoPreview] = useState("");
+    const [savedPhotoPreview, setSavedPhotoPreview] = useState("");
+
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
@@ -40,22 +48,28 @@ export default function WorkerProfile() {
 
                 if (!active) return;
 
-                setForm({
+                const profileData = {
                     username: data.username || "",
                     email: data.email || "",
                     bio: data.bio || "",
                     skills: data.skills || "",
                     experience: String(data.experience ?? 0),
                     hourly_rate: data.hourly_rate ?? "",
-                });
+                };
 
-                setPhotoPreview(data.profile_photo || "");
+                setForm(profileData);
+                setSavedForm(profileData);
+
+                const profilePhoto = data.profile_photo || "";
+
+                setPhotoPreview(profilePhoto);
+                setSavedPhotoPreview(profilePhoto);
                 setUser(data);
             } catch (err) {
                 if (active) {
                     setError(
                         err.response?.data?.detail ||
-                        "Unable to load your profile."
+                            "Unable to load your profile."
                     );
                 }
             } finally {
@@ -89,11 +103,13 @@ export default function WorkerProfile() {
 
         if (!file.type.startsWith("image/")) {
             setError("Please select a valid image.");
+            event.target.value = "";
             return;
         }
 
         if (file.size > 5 * 1024 * 1024) {
             setError("Image size must be 5 MB or less.");
+            event.target.value = "";
             return;
         }
 
@@ -103,8 +119,36 @@ export default function WorkerProfile() {
         setSuccess("");
     };
 
+    const handleEdit = () => {
+        setIsEditing(true);
+        setError("");
+        setSuccess("");
+    };
+
+    const handleCancel = () => {
+        if (savedForm) {
+            setForm({ ...savedForm });
+        }
+
+        setPhoto(null);
+        setPhotoPreview(savedPhotoPreview);
+        setIsEditing(false);
+        setError("");
+        setSuccess("");
+
+        const photoInput = document.getElementById(
+            "worker-profile-photo"
+        );
+
+        if (photoInput) {
+            photoInput.value = "";
+        }
+    };
+
     const handleSubmit = async (event) => {
         event.preventDefault();
+
+        if (!isEditing) return;
 
         setSaving(true);
         setError("");
@@ -126,20 +170,37 @@ export default function WorkerProfile() {
 
             const updatedProfile = await updateProfile(data);
 
-            setUser(updatedProfile);
-
-            setForm({
+            const updatedForm = {
                 username: updatedProfile.username || "",
                 email: updatedProfile.email || "",
                 bio: updatedProfile.bio || "",
                 skills: updatedProfile.skills || "",
-                experience: String(updatedProfile.experience ?? 0),
+                experience: String(
+                    updatedProfile.experience ?? 0
+                ),
                 hourly_rate: updatedProfile.hourly_rate ?? "",
-            });
+            };
 
-            setPhotoPreview(updatedProfile.profile_photo || "");
+            const updatedPhoto =
+                updatedProfile.profile_photo || "";
+
+            setUser(updatedProfile);
+            setForm(updatedForm);
+            setSavedForm(updatedForm);
+
+            setPhotoPreview(updatedPhoto);
+            setSavedPhotoPreview(updatedPhoto);
             setPhoto(null);
 
+            const photoInput = document.getElementById(
+                "worker-profile-photo"
+            );
+
+            if (photoInput) {
+                photoInput.value = "";
+            }
+
+            setIsEditing(false);
             setSuccess("Worker profile updated successfully!");
         } catch (err) {
             const responseData = err.response?.data;
@@ -151,7 +212,9 @@ export default function WorkerProfile() {
 
                 setError(firstError || "Failed to update profile.");
             } else {
-                setError("Failed to update profile. Please try again.");
+                setError(
+                    "Failed to update profile. Please try again."
+                );
             }
         } finally {
             setSaving(false);
@@ -161,7 +224,10 @@ export default function WorkerProfile() {
     if (loading) {
         return (
             <div className="worker-profile-loading">
-                <LoaderCircle className="worker-profile-spinner" size={28} />
+                <LoaderCircle
+                    className="worker-profile-spinner"
+                    size={28}
+                />
                 <p>Loading your profile...</p>
             </div>
         );
@@ -173,9 +239,21 @@ export default function WorkerProfile() {
                 <div>
                     <h1>My Professional Profile</h1>
                     <p>
-                        Showcase your experience and skills to attract customers.
+                        Showcase your experience and skills to attract
+                        customers.
                     </p>
                 </div>
+
+                {!isEditing && (
+                    <button
+                        type="button"
+                        className="worker-profile-edit"
+                        onClick={handleEdit}
+                    >
+                        <Pencil size={17} />
+                        Edit Profile
+                    </button>
+                )}
             </div>
 
             <form
@@ -185,7 +263,10 @@ export default function WorkerProfile() {
                 <div className="worker-profile-photo-section">
                     <div className="worker-profile-avatar">
                         {photoPreview ? (
-                            <img src={photoPreview} alt="Worker profile" />
+                            <img
+                                src={photoPreview}
+                                alt="Worker profile"
+                            />
                         ) : (
                             <UserRound size={46} />
                         )}
@@ -193,23 +274,30 @@ export default function WorkerProfile() {
 
                     <div className="worker-profile-photo-info">
                         <h3>Profile Photo</h3>
-                        <p>Use a clear photo so customers can recognize you.</p>
+                        <p>
+                            Use a clear photo so customers can recognize
+                            you.
+                        </p>
 
-                        <label
-                            htmlFor="worker-profile-photo"
-                            className="worker-profile-upload"
-                        >
-                            <Camera size={17} />
-                            Change Photo
-                        </label>
+                        {isEditing && (
+                            <>
+                                <label
+                                    htmlFor="worker-profile-photo"
+                                    className="worker-profile-upload"
+                                >
+                                    <Camera size={17} />
+                                    Change Photo
+                                </label>
 
-                        <input
-                            id="worker-profile-photo"
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePhotoChange}
-                            hidden
-                        />
+                                <input
+                                    id="worker-profile-photo"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handlePhotoChange}
+                                    hidden
+                                />
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -222,7 +310,9 @@ export default function WorkerProfile() {
 
                 <div className="worker-profile-fields">
                     <div className="worker-profile-field">
-                        <label htmlFor="worker-username">Username</label>
+                        <label htmlFor="worker-username">
+                            Username
+                        </label>
                         <input
                             id="worker-username"
                             name="username"
@@ -230,17 +320,21 @@ export default function WorkerProfile() {
                             onChange={handleChange}
                             maxLength={150}
                             required
+                            disabled={!isEditing || saving}
                         />
                     </div>
 
                     <div className="worker-profile-field">
-                        <label htmlFor="worker-email">Email Address</label>
+                        <label htmlFor="worker-email">
+                            Email Address
+                        </label>
                         <input
                             id="worker-email"
                             name="email"
                             type="email"
                             value={form.email}
                             onChange={handleChange}
+                            disabled={!isEditing || saving}
                         />
                     </div>
 
@@ -249,7 +343,8 @@ export default function WorkerProfile() {
 
                         <div className="worker-profile-verification">
                             <span>
-                                {user?.phone_number || "No account phone added"}
+                                {user?.phone_number ||
+                                    "No account phone added"}
                             </span>
 
                             <span
@@ -281,7 +376,9 @@ export default function WorkerProfile() {
 
                 <div className="worker-profile-fields">
                     <div className="worker-profile-field full-width">
-                        <label htmlFor="worker-bio">About Me</label>
+                        <label htmlFor="worker-bio">
+                            About Me
+                        </label>
                         <textarea
                             id="worker-bio"
                             name="bio"
@@ -290,8 +387,11 @@ export default function WorkerProfile() {
                             placeholder="Introduce yourself and describe your work..."
                             rows={4}
                             maxLength={1000}
+                            disabled={!isEditing || saving}
                         />
-                        <small>{form.bio.length}/1000 characters</small>
+                        <small>
+                            {form.bio.length}/1000 characters
+                        </small>
                     </div>
 
                     <div className="worker-profile-field full-width">
@@ -306,6 +406,7 @@ export default function WorkerProfile() {
                             placeholder="e.g. Plumbing, pipe fitting, bathroom repairs"
                             rows={3}
                             maxLength={1000}
+                            disabled={!isEditing || saving}
                         />
                         <small>
                             Separate your skills with commas to make them
@@ -326,6 +427,7 @@ export default function WorkerProfile() {
                             value={form.experience}
                             onChange={handleChange}
                             required
+                            disabled={!isEditing || saving}
                         />
                     </div>
 
@@ -345,6 +447,7 @@ export default function WorkerProfile() {
                                 value={form.hourly_rate}
                                 onChange={handleChange}
                                 placeholder="e.g. 250"
+                                disabled={!isEditing || saving}
                             />
                         </div>
 
@@ -366,28 +469,40 @@ export default function WorkerProfile() {
                     </div>
                 )}
 
-                <div className="worker-profile-actions">
-                    <button
-                        type="submit"
-                        className="worker-profile-save"
-                        disabled={saving}
-                    >
-                        {saving ? (
-                            <>
-                                <LoaderCircle
-                                    size={18}
-                                    className="worker-profile-spinner"
-                                />
-                                Saving...
-                            </>
-                        ) : (
-                            <>
-                                <Save size={18} />
-                                Save Changes
-                            </>
-                        )}
-                    </button>
-                </div>
+                {isEditing && (
+                    <div className="worker-profile-actions">
+                        <button
+                            type="button"
+                            className="worker-profile-cancel"
+                            onClick={handleCancel}
+                            disabled={saving}
+                        >
+                            <X size={18} />
+                            Cancel
+                        </button>
+
+                        <button
+                            type="submit"
+                            className="worker-profile-save"
+                            disabled={saving}
+                        >
+                            {saving ? (
+                                <>
+                                    <LoaderCircle
+                                        size={18}
+                                        className="worker-profile-spinner"
+                                    />
+                                    Saving...
+                                </>
+                            ) : (
+                                <>
+                                    <Save size={18} />
+                                    Save Changes
+                                </>
+                            )}
+                        </button>
+                    </div>
+                )}
             </form>
         </div>
     );

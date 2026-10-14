@@ -9,7 +9,6 @@ import {
     FileText,
 } from "lucide-react";
 
-import DashboardLayout from "../../layouts/DashboardLayout";
 import { createWork } from "../../api/works";
 
 import "./PostWork.css";

@@ -9,7 +9,6 @@ import {
     UserRound,
 } from "lucide-react";
 
-import DashboardLayout from "../../layouts/DashboardLayout";
 import { getWork } from "../../api/works";
 import {
     getWorkApplications,
@@ -130,17 +129,17 @@ function Applications() {
 
     if (loading) {
         return (
-            <DashboardLayout>
+            
                 <div className="applications-state">
                     Loading applications...
                 </div>
-            </DashboardLayout>
+            
         );
     }
 
     if (error) {
         return (
-            <DashboardLayout>
+            
 
                 <div className="applications-state">
 
@@ -162,12 +161,12 @@ function Applications() {
 
                 </div>
 
-            </DashboardLayout>
+            
         );
     }
 
     return (
-        <DashboardLayout>
+        
 
             <div className="applications-page">
 
@@ -477,7 +476,7 @@ function Applications() {
 
             </div>
 
-        </DashboardLayout>
+        
     );
 }
 

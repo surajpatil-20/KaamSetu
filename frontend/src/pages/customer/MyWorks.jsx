@@ -9,7 +9,6 @@ import {
     Plus,
 } from "lucide-react";
 
-import DashboardLayout from "../../layouts/DashboardLayout";
 import { getMyWorks } from "../../api/works";
 
 import "./MyWorks.css";

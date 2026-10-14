@@ -37,7 +37,6 @@ function CustomerReviews() {
                 getMyWorks(),
                 getMyReviews(),
             ]);
-
             setWorks(
                 Array.isArray(worksData)
                     ? worksData

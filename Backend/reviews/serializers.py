@@ -1,3 +1,4 @@
+
 from rest_framework import serializers
 
 from .models import Review
@@ -13,12 +14,17 @@ class ReviewSerializer(serializers.ModelSerializer):
         source="worker.username"
     )
 
+    work_title = serializers.ReadOnlyField(
+        source="work.title"
+    )
+
     class Meta:
         model = Review
 
         fields = [
             "id",
             "work",
+            "work_title",
             "customer",
             "customer_username",
             "worker",
@@ -32,6 +38,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "work",
+            "work_title",
             "customer",
             "customer_username",
             "worker",

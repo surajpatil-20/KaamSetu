@@ -8,7 +8,6 @@ import {
     BriefcaseBusiness,
 } from "lucide-react";
 
-import DashboardLayout from "../../layouts/DashboardLayout";
 import { getWork } from "../../api/works";
 
 import "./WorkDetails.css";
@@ -76,11 +75,11 @@ function WorkDetails() {
     if (loading) {
 
         return (
-            <DashboardLayout>
+            
                 <div className="work-details-state">
                     Loading work...
                 </div>
-            </DashboardLayout>
+            
         );
 
     }
@@ -89,7 +88,6 @@ function WorkDetails() {
     if (error || !work) {
 
         return (
-            <DashboardLayout>
 
                 <div className="work-details-state">
 
@@ -111,14 +109,12 @@ function WorkDetails() {
 
                 </div>
 
-            </DashboardLayout>
         );
 
     }
 
 
     return (
-        <DashboardLayout>
 
             <div className="work-details-page">
 
@@ -269,7 +265,6 @@ function WorkDetails() {
 
             </div>
 
-        </DashboardLayout>
     );
 }
 

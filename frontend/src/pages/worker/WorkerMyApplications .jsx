@@ -49,13 +49,19 @@ function formatCurrency(amount) {
     });
 }
 
+
 function getWorkTitle(application) {
+    if (application.work_title) {
+        return application.work_title;
+    }
+
     if (application.work && typeof application.work === "object") {
         return application.work.title || "Untitled Work";
     }
 
     return "Work #" + (application.work ?? "Unknown");
 }
+
 
 function getWorkId(application) {
     if (application.work && typeof application.work === "object") {

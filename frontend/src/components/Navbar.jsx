@@ -1,5 +1,5 @@
 
-import { useCallback, useEffect, useState ,useRef, } from "react";
+import { useCallback, useEffect, useState, useRef, } from "react";
 import {
     Bell,
     Menu,
@@ -17,11 +17,13 @@ import { useAuth } from "../context/AuthContext";
 import { getNotifications } from "../api/notifications";
 import "./Navbar.css";
 
+
 function Navbar({ onMenuClick }) {
     const { isAuthenticated, user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const accountMenuRef = useRef(null);
+    const [isPublicMenuOpen, setIsPublicMenuOpen] = useState(false);
 
     const [unreadCount, setUnreadCount] = useState(0);
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
@@ -50,11 +52,11 @@ function Navbar({ onMenuClick }) {
             const notifications = Array.isArray(response)
                 ? response
                 : response?.results ??
-                  response?.notifications ??
-                  response?.data?.results ??
-                  response?.data?.notifications ??
-                  response?.data ??
-                  [];
+                response?.notifications ??
+                response?.data?.results ??
+                response?.data?.notifications ??
+                response?.data ??
+                [];
 
             if (!Array.isArray(notifications)) return;
 
@@ -83,6 +85,7 @@ function Navbar({ onMenuClick }) {
 
     useEffect(() => {
         setIsAccountMenuOpen(false);
+        setIsPublicMenuOpen(false);
     }, [location.pathname]);
 
     const handleLogout = () => {
@@ -99,16 +102,17 @@ function Navbar({ onMenuClick }) {
             to: "/",
             icon: Home,
         },
+                {
+            label: "Services",
+            to: "/#services",
+            icon: BriefcaseBusiness,
+        },
         {
             label: "How it works",
             to: "/#how-it-works",
             icon: Workflow,
         },
-        {
-            label: "Services",
-            to: "/#services",
-            icon: BriefcaseBusiness,
-        },
+
         {
             label: "About",
             to: "/#about",
@@ -167,6 +171,20 @@ function Navbar({ onMenuClick }) {
                 </Link>
             </div>
 
+            {!isAuthenticated && (
+                <button
+                    type="button"
+                    className="navbar-menu-button navbar-public-menu-button"
+                    onClick={() =>
+                        setIsPublicMenuOpen((previous) => !previous)
+                    }
+                    aria-label="Toggle public navigation"
+                    aria-expanded={isPublicMenuOpen}
+                >
+                    {isPublicMenuOpen ? <X size={21} /> : <Menu size={21} />}
+                </button>
+            )}
+
             <div className="navbar-links">
                 {publicLinks.map(({ label, to }) => (
                     <Link key={label} to={to}>
@@ -182,11 +200,10 @@ function Navbar({ onMenuClick }) {
                             type="button"
                             className="navbar-notification-button"
                             onClick={() => navigate(notificationsPath)}
-                            aria-label={`Notifications${
-                                unreadCount > 0
-                                    ? `, ${unreadCount} unread`
-                                    : ""
-                            }`}
+                            aria-label={`Notifications${unreadCount > 0
+                                ? `, ${unreadCount} unread`
+                                : ""
+                                }`}
                             title="Notifications"
                         >
                             <Bell size={21} />
@@ -297,11 +314,27 @@ function Navbar({ onMenuClick }) {
                         </Link>
 
                         <Link to="/register" className="navbar-signup">
-                            Sign Up
+                            <span className="signup-desktop-text">Sign Up</span>
+                            <span className="signup-mobile-text">Login / Sign Up</span>
                         </Link>
                     </>
                 )}
             </div>
+            {!isAuthenticated && isPublicMenuOpen && (
+                <div className="navbar-public-mobile-menu">
+                    {publicLinks.map(({ label, to, icon: Icon }) => (
+                        <Link
+                            key={label}
+                            to={to}
+                            className="navbar-dropdown-item"
+                            onClick={() => setIsPublicMenuOpen(false)}
+                        >
+                            <Icon size={17} />
+                            <span>{label}</span>
+                        </Link>
+                    ))}
+                </div>
+            )}
         </nav>
     );
 }

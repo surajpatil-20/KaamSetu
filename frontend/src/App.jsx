@@ -1,5 +1,7 @@
 import DashboardLayout from "./layouts/DashboardLayout";
 import { Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
 import Landing from "./pages/public/Landing";
 import Login from "./pages/auth/Login";
@@ -158,4 +160,28 @@ function App() {
     );
 }
 
+
+function ScrollToHash() {
+  const { pathname, hash } = useLocation();
+
+  useEffect(() => {
+    if (!hash) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    const id = decodeURIComponent(hash.slice(1));
+
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }, [pathname, hash]);
+
+  return null;
+}
+
+export { ScrollToHash };
 export default App;

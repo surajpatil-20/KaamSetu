@@ -14,6 +14,7 @@ import {
     LockKeyhole,
     LogIn,
     User,
+    ArrowLeft 
 } from "lucide-react";
 
 import { useAuth } from "../../context/AuthContext";
@@ -148,6 +149,11 @@ function Login() {
         <div className="auth-page">
 
             <div className="auth-card">
+
+                <Link to="/" className="back-home-btn">
+                    <ArrowLeft size={18} />
+                    <span>Back to Home</span>
+                </Link>
 
                 {/* Logo */}
 

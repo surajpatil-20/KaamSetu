@@ -497,3 +497,67 @@
         width: min(280px, calc(100vw - 18px));
     }
 }
+
+
+/* Public navigation menu on mobile */
+.navbar-public-menu-button {
+    display: none;
+}
+
+.navbar-public-mobile-menu {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    .navbar {
+        position: sticky;
+    }
+
+    .navbar-public-menu-button {
+        display: inline-flex;
+        flex-shrink: 0;
+    }
+
+    .navbar-public-mobile-menu {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1100;
+        padding: 10px 14px;
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.10);
+    }
+}
+
+/* Desktop: show Sign Up only */
+.signup-desktop-text {
+  display: inline;
+}
+
+.signup-mobile-text {
+  display: none;
+}
+
+/* Mobile: show Login / Sign Up in the button */
+@media (max-width: 767px) {
+  .navbar-actions .navbar-login {
+    display: none;
+  }
+
+  .signup-desktop-text {
+    display: none;
+  }
+
+  .signup-mobile-text {
+    display: inline;
+  }
+
+  .navbar-signup {
+    white-space: nowrap;
+    padding: 10px 14px;
+  }
+}

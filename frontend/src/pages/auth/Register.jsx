@@ -5,6 +5,7 @@ import {
 import {
     Link,
     useNavigate,
+    useSearchParams,
 } from "react-router-dom";
 
 import {
@@ -14,6 +15,7 @@ import {
     User,
     Phone,
     UserRound,
+    ArrowLeft 
 } from "lucide-react";
 
 import { registerUser } from "../../api/auth";
@@ -25,14 +27,22 @@ function Register() {
 
     const navigate = useNavigate();
 
+    const [searchParams] = useSearchParams();
+
+    const requestedRole = searchParams.get("role");
+
+    const initialRole =
+        requestedRole === "CUSTOMER" || requestedRole === "WORKER"
+            ? requestedRole
+            : "CUSTOMER";
+
     const [username, setUsername] =
         useState("");
 
     const [phoneNumber, setPhoneNumber] =
         useState("");
 
-    const [role, setRole] =
-        useState("CUSTOMER");
+    const [role, setRole] = useState(initialRole);
 
     const [password, setPassword] =
         useState("");
@@ -207,6 +217,11 @@ function Register() {
         <div className="auth-page">
 
             <div className="auth-card register-card">
+
+                <Link to="/" className="back-home-btn">
+                    <ArrowLeft size={18} />
+                    <span>Back to Home</span>
+                </Link>
 
                 {/* Logo */}
 

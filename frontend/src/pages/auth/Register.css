@@ -59,3 +59,73 @@
     }
 
 }
+
+
+/* FIX: Keep input icons separate from placeholder text */
+.auth-page .input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.auth-page .input-wrapper > .input-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 19px;
+    height: 19px;
+    flex-shrink: 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.auth-page .input-wrapper > input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 46px;
+    box-sizing: border-box;
+    padding-top: 0;
+    padding-right: 44px;
+    padding-bottom: 0;
+    padding-left: 44px;
+}
+
+.auth-page .input-wrapper > .password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+}
+
+
+.back-home-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 9px 12px;
+    margin-bottom: 18px;
+    border-radius: 8px;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.back-home-btn:hover {
+    color: #f97316;
+    background: #fff7ed;
+}
+
+.back-home-btn svg {
+    transition: transform 0.2s ease;
+}
+
+.back-home-btn:hover svg {
+    transform: translateX(-3px);
+}
+

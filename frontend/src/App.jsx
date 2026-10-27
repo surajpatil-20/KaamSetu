@@ -34,6 +34,8 @@ import WorkerMyWorks  from "./pages/worker/MyWorks";
 import WorkerNotifications from "./pages/worker/WorkerNotifications";
 import WorkerReviews from "./pages/worker/WorkerReviews";
 
+import ChangePassword from "./pages/auth/ChangePassword";
+
 function App() {
 
     return (
@@ -153,6 +155,12 @@ function App() {
                     />
 
                 </Route>
+
+                <Route
+                    path="/change-password"
+                    element={<ChangePassword />}
+                />
+
             </Route>
         </Route>
 

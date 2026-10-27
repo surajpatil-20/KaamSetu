@@ -34,7 +34,7 @@ from .otp import (
 )
 
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-
+from django.contrib.auth.password_validation import validate_password
 
 
 
@@ -805,3 +805,47 @@ class ResendPasswordResetOTPView(
         )
 
         return generic_response  
+    
+    
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        current_password = request.data.get("current_password", "")
+        new_password = request.data.get("new_password", "")
+        confirm_password = request.data.get("confirm_password", "")
+
+        if not all([
+            current_password,
+            new_password,
+            confirm_password,
+        ]):
+            raise ValidationError({
+                "detail": "All password fields are required."
+            })
+
+        user = request.user
+
+        if not user.check_password(current_password):
+            raise ValidationError({
+                "current_password": "Your current password is incorrect."
+            })
+
+        if new_password != confirm_password:
+            raise ValidationError({
+                "confirm_password": "The new passwords do not match."
+            })
+
+        if current_password == new_password:
+            raise ValidationError({
+                "new_password": "Your new password must be different from your current password."
+            })
+
+        validate_password(new_password, user=user)
+
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+
+        return Response({
+            "message": "Password changed successfully."
+        }, status=status.HTTP_200_OK)

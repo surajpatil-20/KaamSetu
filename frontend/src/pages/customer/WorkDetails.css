@@ -275,3 +275,56 @@
     }
 
 }
+
+.work-contact-card {
+    grid-column: 1 / -1;
+    padding: 24px;
+    background: #ffffff;
+    border: 1px solid #fed7aa;
+    border-radius: 16px;
+}
+
+.work-contact-heading,
+.work-contact-phone {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.work-contact-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    color: #ea580c;
+    background: #fff7ed;
+    border-radius: 12px;
+}
+
+.work-contact-heading span {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.work-contact-heading h2 {
+    margin: 4px 0 0;
+    font-size: 19px;
+}
+
+.work-contact-card > p {
+    color: #64748b;
+    line-height: 1.6;
+}
+
+.work-contact-phone {
+    width: fit-content;
+    color: #c2410c;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.work-contact-phone:hover {
+    text-decoration: underline;
+}

@@ -39,10 +39,15 @@ export const uploadWorkPhoto = async (workId, formData) => {
     return response.data;
 };
 
-export const getAvailableWorks = async () => {
-    const response = await api.get("/works/available/");
+
+export const getAvailableWorks = async (filters = {}) => {
+    const response = await api.get("/works/available/", {
+        params: filters,
+    });
+
     return response.data;
 };
+
 
 export const getWorkerMyWorks = async () => {
     const response = await api.get("/works/my/");

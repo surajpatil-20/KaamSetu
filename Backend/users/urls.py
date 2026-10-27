@@ -8,7 +8,8 @@ from .views import (
     VerifyPhoneView,
     ProfileView,
     ResendPhoneOTPView,
-    ResendPasswordResetOTPView
+    ResendPasswordResetOTPView,
+    ChangePasswordView,
 )
 
 urlpatterns = [
@@ -46,6 +47,12 @@ urlpatterns = [
         "resend-password-otp/",
         ResendPasswordResetOTPView.as_view(),
         name="resend-password-otp"
+    ),
+    
+    path(
+        "change-password/",
+        ChangePasswordView.as_view(),
+        name="change-password"
     ),
 
 ]

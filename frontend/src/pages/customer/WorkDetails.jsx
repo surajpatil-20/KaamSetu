@@ -6,6 +6,8 @@ import {
     MapPin,
     IndianRupee,
     BriefcaseBusiness,
+    Phone, 
+    UserRound
 } from "lucide-react";
 
 import { getWork } from "../../api/works";
@@ -248,6 +250,34 @@ function WorkDetails() {
 
                     </div>
 
+                    {/* Selected Worker Contact Details */}
+                    {work.contact_details?.phone && (
+                        <div className="work-contact-card">
+                            <div className="work-contact-heading">
+                                <div className="work-contact-icon">
+                                    <UserRound size={22} />
+                                </div>
+                    
+                                <div>
+                                    <span>SELECTED WORKER</span>
+                                    <h2>{work.contact_details.name}</h2>
+                                </div>
+                            </div>
+                    
+                            <p>
+                                Your selected worker's contact details are available
+                                for coordinating the job.
+                            </p>
+                    
+                            <a
+                                href={`tel:${work.contact_details.phone}`}
+                                className="work-contact-phone"
+                            >
+                                <Phone size={18} />
+                                {work.contact_details.phone}
+                            </a>
+                        </div>
+                    )}
 
                     <div className="work-description-card">
 

@@ -9,11 +9,23 @@ import {
     X,
     Send,
     RefreshCw,
+    Crosshair,
 } from "lucide-react";
 
 import { getAvailableWorks } from "../../api/works";
 import { applyToWork } from "../../api/applications";
 import "./AvailableWorks.css";
+
+import {
+    MapContainer,
+    TileLayer,
+    Marker,
+    Popup,
+    useMap,
+} from "react-leaflet";
+
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 const CATEGORIES = [
     { value: "ALL", label: "All Categories" },
@@ -48,6 +60,61 @@ function formatDate(date) {
     });
 }
 
+
+function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+    const toRadians = (degrees) => (degrees * Math.PI) / 180;
+    const earthRadiusKm = 6371;
+
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
+
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRadians(lat1)) *
+            Math.cos(toRadians(lat2)) *
+            Math.sin(dLon / 2) ** 2;
+
+    return (
+        earthRadiusKm *
+        2 *
+        Math.asin(Math.sqrt(Math.min(1, Math.max(0, a))))
+    );
+}
+
+function JobsMapView({ works, workerLocation, onSelectJob }) {
+    const map = useMap();
+
+    useEffect(() => {
+        const points = works
+            .filter(
+                (work) =>
+                    work.latitude != null &&
+                    work.longitude != null &&
+                    Number.isFinite(Number(work.latitude)) &&
+                    Number.isFinite(Number(work.longitude))
+            )
+            .map((work) => [
+                Number(work.latitude),
+                Number(work.longitude),
+            ]);
+
+        if (workerLocation) {
+            points.push([
+                workerLocation.latitude,
+                workerLocation.longitude,
+            ]);
+        }
+
+        if (points.length === 1) {
+            map.setView(points[0], 14);
+        } else if (points.length > 1) {
+            map.fitBounds(points, { padding: [35, 35], maxZoom: 14 });
+        }
+    }, [map, works, workerLocation]);
+
+    return null;
+}
+
 function AvailableWorks() {
     const [works, setWorks] = useState([]);
     const [search, setSearch] = useState("");
@@ -59,25 +126,88 @@ function AvailableWorks() {
     const [applyingId, setApplyingId] = useState(null);
     const [applicationForms, setApplicationForms] = useState({});
     const [expandedId, setExpandedId] = useState(null);
+    const [workerLocation, setWorkerLocation] = useState(null);
+    const [radius, setRadius] = useState("10");
+    const [locationLoading, setLocationLoading] = useState(false);
+    const [showJobsMap, setShowJobsMap] = useState(true);
+const [selectedMapJob, setSelectedMapJob] = useState(null);
 
-    const loadWorks = async () => {
+    
+    const loadWorks = async (location = workerLocation, selectedRadius = radius) => {
         setLoading(true);
         setError("");
 
         try {
-            const data = await getAvailableWorks();
+            const filters = location
+                ? {
+                      latitude: location.latitude,
+                      longitude: location.longitude,
+                      radius: selectedRadius,
+                  }
+                : {};
+
+            const data = await getAvailableWorks(filters);
             setWorks(getList(data));
         } catch (err) {
             console.error("Failed to load available works:", err);
 
             setError(
                 err.response?.data?.detail ||
-                "Unable to load available jobs. Please try again."
+                    err.response?.data?.location?.[0] ||
+                    "Unable to load available jobs. Please try again."
             );
         } finally {
             setLoading(false);
         }
     };
+
+    
+    const handleUseCurrentLocation = () => {
+        setError("");
+        setNotice("");
+
+        if (!navigator.geolocation) {
+            setError("Your browser does not support location detection.");
+            return;
+        }
+
+        setLocationLoading(true);
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const location = {
+                    latitude: Number(position.coords.latitude.toFixed(6)),
+                    longitude: Number(position.coords.longitude.toFixed(6)),
+                };
+
+                setWorkerLocation(location);
+
+                try {
+                    await loadWorks(location, radius);
+                } finally {
+                    setLocationLoading(false);
+                }
+            },
+            (geoError) => {
+                setLocationLoading(false);
+
+                if (geoError.code === 1) {
+                    setError("Please allow location access in your browser settings.");
+                } else if (geoError.code === 3) {
+                    setError("Location request timed out. Please try again.");
+                } else {
+                    setError("Could not detect your location. Please try again.");
+                }
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 30000,
+                maximumAge: 0,
+            }
+        );
+    };
+
+
 
     useEffect(() => {
         loadWorks();
@@ -238,6 +368,52 @@ function AvailableWorks() {
                     )}
                 </div>
 
+                
+                <div className="nearby-work-controls">
+                    <button
+                        type="button"
+                        className="nearby-location-button"
+                        onClick={handleUseCurrentLocation}
+                        disabled={locationLoading || loading}
+                    >
+                        <Crosshair size={17} />
+                        {locationLoading ? "Finding nearby jobs..." : "Use My Location"}
+                    </button>
+
+                    <select
+                        className="nearby-radius-select"
+                        value={radius}
+                        onChange={async (event) => {
+                            const newRadius = event.target.value;
+                            setRadius(newRadius);
+                        
+                            if (workerLocation) {
+                                await loadWorks(workerLocation, newRadius);
+                            }
+                        }}
+                        aria-label="Nearby jobs radius"
+                    >
+                        <option value="5">Within 5 km</option>
+                        <option value="10">Within 10 km</option>
+                        <option value="25">Within 25 km</option>
+                        <option value="50">Within 50 km</option>
+                    </select>
+                    
+                    {workerLocation && (
+                        <button
+                            type="button"
+                            className="nearby-clear-button"
+                            onClick={() => {
+                                setWorkerLocation(null);
+                                loadWorks(null, radius);
+                            }}
+                        >
+                            Show all jobs
+                        </button>
+                    )}
+                </div>
+
+
                 <div className="available-filter-control">
                     <SlidersHorizontal size={17} />
                     <select
@@ -265,6 +441,151 @@ function AvailableWorks() {
                 </select>
             </section>
 
+            {/* Interactive jobs map */}
+            <section className="jobs-map-section">
+                <div className="jobs-map-header">
+                    <div>
+                        <h2>Explore Jobs on Map</h2>
+                        <p>
+                            Select a marker to see job details and location.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        className="jobs-map-toggle"
+                        onClick={() => setShowJobsMap((previous) => !previous)}
+                    >
+                        {showJobsMap ? "Hide Map" : "Show Map"}
+                    </button>
+                </div>
+
+                {showJobsMap && (
+                    <div className="jobs-map-container">
+                        <MapContainer
+                            center={
+                                workerLocation
+                                    ? [
+                                          workerLocation.latitude,
+                                          workerLocation.longitude,
+                                      ]
+                                    : [16.705, 74.2433]
+                            }
+                            zoom={12}
+                            scrollWheelZoom
+                            className="jobs-leaflet-map"
+                        >
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+
+                            <JobsMapView
+                                works={filteredWorks}
+                                workerLocation={workerLocation}
+                            />
+
+                            {/* Worker's current location */}
+                            {workerLocation && (
+                                <Marker
+                                    position={[
+                                        workerLocation.latitude,
+                                        workerLocation.longitude,
+                                    ]}
+                                >
+                                    <Popup>
+                                        <strong>Your current location</strong>
+                                    </Popup>
+                                </Marker>
+                            )}
+
+                            {/* Available work markers */}
+                            {filteredWorks
+                                .filter(
+                                    (work) =>
+                                        work.latitude != null &&
+                                        work.longitude != null &&
+                                        Number.isFinite(Number(work.latitude)) &&
+                                        Number.isFinite(Number(work.longitude)) &&
+                                        Number(work.latitude) >= -90 &&
+                                        Number(work.latitude) <= 90 &&
+                                        Number(work.longitude) >= -180 &&
+                                        Number(work.longitude) <= 180
+                                )
+                                .map((work) => (
+                                    <Marker
+                                        key={work.id}
+                                        position={[
+                                            Number(work.latitude),
+                                            Number(work.longitude),
+                                        ]}
+                                        eventHandlers={{
+                                            click: () => setSelectedMapJob(work.id),
+                                        }}
+                                    >
+                                        <Popup>
+                                            <div className="jobs-map-popup">
+                                                <strong>{work.title}</strong>
+                                    
+                                                <p>
+                                                    {String(work.category || "Other")
+                                                        .replaceAll("_", " ")}
+                                                </p>
+                                                    
+                                                <p>
+                                                    <strong>Budget:</strong>{" "}
+                                                    ₹{Number(work.budget || 0).toLocaleString("en-IN")}
+                                                </p>
+                                                    
+                                                <p>
+                                                    <strong>Location:</strong>{" "}
+                                                    {work.location || work.city || "Not specified"}
+                                                </p>
+                                                    
+                                                {work.work_date && (
+                                                    <p>
+                                                        <strong>Date:</strong>{" "}
+                                                        {work.work_date}
+                                                    </p>
+                                                )}
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedMapJob(work.id);
+                                                        setExpandedId(work.id);
+                                                    
+                                                        document
+                                                            .getElementById(
+                                                                `available-work-${work.id}`
+                                                            )
+                                                            ?.scrollIntoView({
+                                                                behavior: "smooth",
+                                                                block: "center",
+                                                            });
+                                                    }}
+                                                >
+                                                    View Job Details
+                                                </button>
+                                            </div>
+                                        </Popup>
+                                    </Marker>
+                                ))}
+                        </MapContainer>
+                            
+                        <p className="jobs-map-note">
+                            {filteredWorks.filter(
+                                (work) =>
+                                    work.latitude != null &&
+                                    work.longitude != null
+                            ).length}{" "}
+                            jobs with mapped locations. Jobs without coordinates
+                            won't appear as markers.
+                        </p>
+                    </div>
+                )}
+            </section>
+            
             <div className="available-results-heading">
                 <div>
                     <h2>Jobs for you</h2>
@@ -348,7 +669,11 @@ function AvailableWorks() {
                                 className="available-job-card"
                                 key={work.id}
                             >
-                                <div className="available-job-card-top">
+                                <div id={`available-work-${work.id}`} 
+                                    className={`available-job-card-top ${
+                                        selectedMapJob === work.id ? "map-job-selected" : ""
+                                    }`} 
+                                >
                                     <span className="available-category-badge">
                                         {CATEGORIES.find(
                                             (item) => item.value === work.category
@@ -375,6 +700,23 @@ function AvailableWorks() {
                                         {formatDate(work.work_date)}
                                     </span>
                                 </div>
+
+                                
+                                {workerLocation &&
+                                    work.latitude != null &&
+                                    work.longitude != null && (
+                                        <div className="available-job-distance">
+                                            <MapPin size={15} />
+                                            {calculateDistanceKm(
+                                                workerLocation.latitude,
+                                                workerLocation.longitude,
+                                                Number(work.latitude),
+                                                Number(work.longitude)
+                                            ).toFixed(1)}{" "}
+                                            km away
+                                        </div>
+                                    )}
+                                
 
                                 <div className="available-job-budget">
                                     <span>Customer's budget</span>

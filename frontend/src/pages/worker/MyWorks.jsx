@@ -9,6 +9,8 @@ import {
     Play,
     Send,
     RefreshCw,
+    Phone,
+    UserRound
 } from "lucide-react";
 
 import {
@@ -296,6 +298,30 @@ function MyWorks() {
                                 </strong>
                             </div>
 
+                            {/* Customer Contact Details */}
+                            {work.contact_details?.phone && (
+                                <div className="worker-customer-contact">
+                                    <div className="worker-contact-heading">
+                                        <div className="worker-contact-icon">
+                                            <UserRound size={20} />
+                                        </div>
+                            
+                                        <div>
+                                            <span>CUSTOMER CONTACT</span>
+                                            <h4>{work.contact_details.name}</h4>
+                                        </div>
+                                    </div>
+                            
+                                    <a
+                                        href={`tel:${work.contact_details.phone}`}
+                                        className="worker-contact-phone"
+                                    >
+                                        <Phone size={17} />
+                                        {work.contact_details.phone}
+                                    </a>
+                                </div>
+                            )}
+
                             {work.status === "WORKER_SELECTED" && (
                                 <button
                                     type="button"
@@ -344,6 +370,8 @@ function MyWorks() {
                             )}
                         </article>
                     ))}
+
+
                 </div>
             )}
         </div>

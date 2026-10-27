@@ -1,6 +1,7 @@
 
 import { Link } from "react-router-dom";
 import Navbar from "../../components/Navbar";
+import { useAuth } from "../../context/AuthContext";
 
 import {
     ArrowRight,
@@ -89,6 +90,22 @@ const steps = [
 
 
 function Landing() {
+    const { isAuthenticated, user } = useAuth();
+
+    const role = user?.role?.toUpperCase();
+    const dashboardPath =
+        role === "CUSTOMER"
+            ? "/customer/dashboard"
+            : role === "WORKER"
+            ? "/worker/dashboard"
+            : "/login";
+
+    const ctaTo = (guestPath) =>
+        isAuthenticated ? dashboardPath : guestPath;
+
+    const ctaLabel = (guestLabel) =>
+        isAuthenticated ? "Go to Dashboard" : guestLabel;
+
     return (
         <>
         <Navbar />
@@ -117,15 +134,33 @@ function Landing() {
                         </p>
 
                         <div className="landing-hero-actions">
-                            <Link to="/register?role=CUSTOMER" className="landing-btn landing-btn-primary">
-                                Hire a worker
-                                <ArrowRight size={18} />
-                            </Link>
-
-                            <Link to="/register?role=WORKER" className="landing-btn landing-btn-secondary">
-                                Find work
-                                <ArrowRight size={18} />
-                            </Link>
+                            {isAuthenticated ? (
+                                <Link
+                                    to={dashboardPath}
+                                    className="landing-btn landing-btn-primary"
+                                >
+                                    Go to Dashboard
+                                    <ArrowRight size={18} />
+                                </Link>
+                            ) : (
+                                <>
+                                    <Link
+                                        to="/register?role=CUSTOMER"
+                                        className="landing-btn landing-btn-primary"
+                                    >
+                                        Hire a worker
+                                        <ArrowRight size={18} />
+                                    </Link>
+                            
+                                    <Link
+                                        to="/register?role=WORKER"
+                                        className="landing-btn landing-btn-secondary"
+                                    >
+                                        Find work
+                                        <ArrowRight size={18} />
+                                    </Link>
+                                </>
+                            )}
                         </div>
 
                         <div className="landing-trust-points">
@@ -290,12 +325,8 @@ function Landing() {
                         {services.map((service) => {
                             const Icon = service.icon;
 
-                            return (
-                                <Link
-                                    to="/register"
-                                    className="landing-service-card"
-                                    key={service.title}
-                                >
+                            const serviceContent = (
+                                <>
                                     <div
                                         className={`landing-service-icon ${service.color}`}
                                     >
@@ -304,7 +335,28 @@ function Landing() {
 
                                     <h3>{service.title}</h3>
                                     <p>{service.description}</p>
+                                </>
+                            );
 
+                            // Logged-in users see informational service cards without a CTA.
+                            if (isAuthenticated) {
+                                return (
+                                    <article
+                                        className="landing-service-card"
+                                        key={service.title}
+                                    >
+                                        {serviceContent}
+                                    </article>
+                                );
+                            }
+
+                            return (
+                                <Link
+                                    to="/register"
+                                    className="landing-service-card"
+                                    key={service.title}
+                                >
+                                    {serviceContent}
                                     <span className="landing-service-link">
                                         Get started
                                         <ArrowRight size={16} />
@@ -320,8 +372,8 @@ function Landing() {
                             other types of work too.
                         </p>
 
-                        <Link to="/register">
-                            Post your work
+                        <Link to={ctaTo("/register")}>
+                            {ctaLabel("Post your work")}
                             <ArrowRight size={17} />
                         </Link>
                     </div>
@@ -411,10 +463,10 @@ function Landing() {
                             </div>
 
                             <Link
-                                to="/register?role=CUSTOMER"
+                                to={ctaTo("/register?role=CUSTOMER")}
                                 className="landing-journey-cta"
                             >
-                                Hire a worker <ArrowRight size={18} />
+                                {ctaLabel("Hire a worker")} <ArrowRight size={18} />
                             </Link>
                         </article>
 
@@ -482,10 +534,10 @@ function Landing() {
                             </div>
 
                             <Link
-                                to="/register?role=WORKER"
+                                to={ctaTo("/register?role=WORKER")}
                                 className="landing-journey-cta"
                             >
-                                Find work <ArrowRight size={18} />
+                                {ctaLabel("Find work")} <ArrowRight size={18} />
                             </Link>
                         </article>
                     </div>
@@ -513,8 +565,8 @@ function Landing() {
                             for your job.
                         </p>
 
-                        <Link to="/register">
-                            Hire a worker
+                        <Link to={ctaTo("/register")}>
+                            {ctaLabel("Hire a worker")}
                             <ArrowRight size={18} />
                         </Link>
                     </article>
@@ -536,8 +588,8 @@ function Landing() {
                             your skills and experience.
                         </p>
 
-                        <Link to="/register">
-                            Find work
+                        <Link to={ctaTo("/register")}>
+                            {ctaLabel("Find work")}
                             <ArrowRight size={18} />
                         </Link>
                     </article>
@@ -557,10 +609,10 @@ function Landing() {
                     </div>
 
                     <Link
-                        to="/register"
+                        to={ctaTo("/register")}
                         className="landing-btn landing-btn-light"
                     >
-                        Create your account
+                        {ctaLabel("Create your account")}
                         <ArrowRight size={19} />
                     </Link>
                 </div>

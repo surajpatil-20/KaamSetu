@@ -146,13 +146,9 @@ class ResetPasswordSerializer(serializers.Serializer):
 
         return attrs
 
+
 class VerifyPhoneSerializer(serializers.Serializer):
-
-    phone_number = serializers.CharField(
-        max_length=15
-    )
-
-    otp = serializers.CharField(
-        min_length=6,
-        max_length=6
+    id_token = serializers.CharField(
+        write_only=True,
+        trim_whitespace=True,
     )

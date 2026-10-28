@@ -36,39 +36,11 @@ from .otp import (
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.contrib.auth.password_validation import validate_password
 
-
+from .firebase_service import verify_firebase_phone_token
 
 class RegisterView(generics.CreateAPIView):
-
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
-
-    @transaction.atomic
-    def perform_create(self, serializer):
-
-        user = serializer.save()
-
-        otp = generate_otp()
-
-        PhoneVerificationOTP.objects.filter(
-            user=user,
-            is_used=False
-        ).update(
-            is_used=True
-        )
-
-        PhoneVerificationOTP.objects.create(
-            user=user,
-            otp_hash=hash_otp(otp),
-            expires_at=otp_expiry_time()
-        )
-
-        send_otp(
-            user,
-            otp
-        )
-
-
 
 
 
@@ -214,152 +186,70 @@ class ProfileView(APIView):
 
         return self.get(request)
 
-class VerifyPhoneView(generics.GenericAPIView):
 
+class VerifyPhoneView(generics.GenericAPIView):
     serializer_class = VerifyPhoneSerializer
     permission_classes = [AllowAny]
 
     @transaction.atomic
     def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        serializer = self.get_serializer(
-            data=request.data
-        )
+        id_token = serializer.validated_data["id_token"]
 
-        serializer.is_valid(
-            raise_exception=True
-        )
-
-        phone_number = (
-            serializer.validated_data[
-                "phone_number"
-            ]
-            .strip()
-        )
-
-        otp = serializer.validated_data[
-            "otp"
-        ]
-
-        # Normalize phone number
-        if phone_number.startswith("+91"):
-            number = phone_number[3:]
-        else:
-            number = phone_number
-
-        number = (
-            number
-            .replace(" ", "")
-            .replace("-", "")
-        )
-
-        if (
-            not number.isdigit()
-            or len(number) != 10
-        ):
+        try:
+            firebase_phone = verify_firebase_phone_token(id_token)
+        except ValueError:
             raise ValidationError(
-                "Enter a valid 10-digit Indian mobile number."
+                {"detail": "Invalid or expired Firebase ID token."}
             )
 
-        normalized_phone = "+91" + number
+        # Keep KaamSetu's Indian mobile-number format.
+        if not firebase_phone.startswith("+91"):
+            raise ValidationError(
+                {"detail": "Use an Indian mobile number beginning with +91."}
+            )
 
-        user = User.objects.filter(
-            phone_number=normalized_phone
+        indian_number = firebase_phone[3:]
+
+        if not indian_number.isdigit() or len(indian_number) != 10:
+            raise ValidationError(
+                {"detail": "Firebase returned an invalid Indian mobile number."}
+            )
+
+        user = User.objects.select_for_update().filter(
+            phone_number=firebase_phone
         ).first()
 
         if user is None:
             raise ValidationError(
-                "Invalid OTP."
+                {
+                    "detail": (
+                        "No KaamSetu account is registered with this "
+                        "phone number. Register with this number first."
+                    )
+                }
             )
 
         if user.phone_verified:
             return Response({
-                "message":
-                    "Phone number is already verified."
-            })
+                "message": "Phone number is already verified."
+            }, status=status.HTTP_200_OK)
 
-        otp_record = (
-            PhoneVerificationOTP.objects
-            .select_for_update()
-            .filter(
-                user=user,
-                is_used=False
-            )
-            .order_by("-created_at")
-            .first()
-        )
-
-        if otp_record is None:
-            raise ValidationError(
-                "Invalid or expired OTP."
-            )
-
-        # Check expiration
-        if otp_record.expires_at < timezone.now():
-
-            otp_record.is_used = True
-
-            otp_record.save(
-                update_fields=["is_used"]
-            )
-
-            raise ValidationError(
-                "OTP has expired."
-            )
-
-        # Check maximum attempts
-        if otp_record.attempts >= OTP_MAX_ATTEMPTS:
-
-            otp_record.is_used = True
-
-            otp_record.save(
-                update_fields=["is_used"]
-            )
-
-            raise ValidationError(
-                "Too many OTP attempts. Request a new OTP."
-            )
-
-        # Count this attempt
-        otp_record.attempts += 1
-
-        # Verify OTP
-        if not verify_otp_hash(
-            otp,
-            otp_record.otp_hash
-        ):
-
-            otp_record.save(
-                update_fields=["attempts"]
-            )
-
-            raise ValidationError(
-                "Invalid OTP."
-            )
-
-        # OTP verified
-        otp_record.is_used = True
-
-        otp_record.save(
-            update_fields=[
-                "attempts",
-                "is_used"
-            ]
-        )
-
-        # Verify phone
         user.phone_verified = True
+        user.save(update_fields=["phone_verified"])
 
-        user.save(
-            update_fields=[
-                "phone_verified"
-            ]
-        )
+        # Invalidate any outstanding Django phone OTPs for this user.
+        PhoneVerificationOTP.objects.filter(
+            user=user,
+            is_used=False,
+        ).update(is_used=True)
 
         return Response({
-            "message":
-                "Phone number verified successfully."
-        })
+            "message": "Phone number verified successfully."
+        }, status=status.HTTP_200_OK)
+
 
 class ForgotPasswordView(generics.GenericAPIView):
 

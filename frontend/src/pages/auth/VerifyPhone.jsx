@@ -1,3 +1,4 @@
+
 import {
     useEffect,
     useRef,
@@ -16,18 +17,18 @@ import {
     Phone,
 } from "lucide-react";
 
+import { verifyPhone } from "../../api/auth";
+
 import {
-    verifyPhone,
-    resendPhoneOTP,
-} from "../../api/auth";
+    sendPhoneOtp,
+    verifyPhoneOtp,
+    clearPhoneOtp,
+} from "../../firebasePhoneAuth";
 
 import "./VerifyPhone.css";
 
-
 function VerifyPhone() {
-
     const navigate = useNavigate();
-
     const location = useLocation();
 
     const phoneFromRegister =
@@ -39,117 +40,140 @@ function VerifyPhone() {
     const [phoneNumber, setPhoneNumber] =
         useState(phoneFromRegister);
 
-    const [otp, setOtp] =
-        useState("");
-
-    const [error, setError] =
-        useState("");
-
-    const [message, setMessage] =
-        useState("");
-
-    const [loading, setLoading] =
-        useState(false);
-
-    const [resendLoading, setResendLoading] =
-        useState(false);
-
-    const [seconds, setSeconds] =
-        useState(0);
+    const [otp, setOtp] = useState("");
+    const [error, setError] = useState("");
+    const [message, setMessage] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [resendLoading, setResendLoading] = useState(false);
+    const [seconds, setSeconds] = useState(0);
+    const [otpSent, setOtpSent] = useState(false);
 
     const otpInputRef = useRef(null);
 
-
-    /*
-     * Countdown
-     */
-
+    // Countdown timer
     useEffect(() => {
-
-        if (seconds <= 0) {
-            return;
-        }
+        if (seconds <= 0) return;
 
         const timer = setInterval(() => {
-
-            setSeconds((previous) =>
-                previous - 1
-            );
-
+            setSeconds((previous) => previous - 1);
         }, 1000);
 
         return () => clearInterval(timer);
-
     }, [seconds]);
 
-
-    /*
-     * Focus OTP input
-     */
-
+    // Clear Firebase verification state when leaving this page.
     useEffect(() => {
-
-        otpInputRef.current?.focus();
-
+        return () => {
+            clearPhoneOtp();
+        };
     }, []);
 
+    const getIndianNumber = () => {
+        const cleaned = phoneNumber
+            .replace(/\s/g, "")
+            .replace(/-/g, "");
 
-    const formatPhone = (phone) => {
+        const number = cleaned.startsWith("+91")
+            ? cleaned.slice(3)
+            : cleaned;
 
-        const cleaned =
-            phone
-                .replace(/\s/g, "")
-                .replace(/-/g, "");
-
-        if (cleaned.startsWith("+91")) {
-            return cleaned;
+        if (!/^\d{10}$/.test(number)) {
+            return null;
         }
 
-        return `+91${cleaned}`;
+        return number;
     };
 
+    // Request or resend the Firebase test OTP.
+    const handleResend = async () => {
+        setError("");
+        setMessage("");
 
+        const number = getIndianNumber();
+
+        if (!number) {
+            setError(
+                "Enter a valid 10-digit Indian mobile number."
+            );
+            return;
+        }
+
+        try {
+            setResendLoading(true);
+
+            await sendPhoneOtp(
+                `+91${number}`,
+                "recaptcha-container"
+            );
+
+            setOtpSent(true);
+            setOtp("");
+            setSeconds(60);
+
+            setMessage(
+                "OTP requested successfully. Enter your Firebase test code."
+            );
+
+            otpInputRef.current?.focus();
+        } catch (error) {
+            console.error(
+                "FIREBASE OTP ERROR:",
+                error
+            );
+
+            setError(
+                error.message ||
+                "Unable to request OTP. Please try again."
+            );
+        } finally {
+            setResendLoading(false);
+        }
+    };
+
+    // Verify the Firebase code, then verify its ID token in Django.
     const handleVerify = async (e) => {
-
         e.preventDefault();
 
         setError("");
         setMessage("");
 
-        const cleanPhone =
-            phoneNumber
-                .replace(/\s/g, "")
-                .replace(/-/g, "");
+        const number = getIndianNumber();
 
-        if (!/^(?:\+91)?\d{10}$/.test(
-            cleanPhone
-        )) {
-
+        if (!number) {
             setError(
                 "Enter a valid 10-digit Indian mobile number."
             );
+            return;
+        }
 
+        if (!otpSent) {
+            setError("Please click Send OTP first.");
             return;
         }
 
         if (!/^\d{6}$/.test(otp)) {
-
-            setError(
-                "Enter the 6-digit OTP."
-            );
-
+            setError("Enter the 6-digit OTP.");
             return;
         }
 
         try {
-
             setLoading(true);
 
+            // Firebase confirms the code configured in Firebase Console.
+            const result = await verifyPhoneOtp(otp);
+
+            const expectedPhone = `+91${number}`;
+
+            if (result.phoneNumber !== expectedPhone) {
+                setError(
+                    "The verified Firebase number does not match the entered number."
+                );
+                return;
+            }
+
+            // Django validates the Firebase ID token.
             const data = await verifyPhone({
-                phone_number: formatPhone(
-                    cleanPhone
-                ),
-                otp,
+                id_token: result.idToken,
             });
 
             setMessage(
@@ -157,233 +181,95 @@ function VerifyPhone() {
                 "Phone number verified successfully."
             );
 
-            /*
-             * Give the user a moment to see
-             * the success message.
-             */
-
             setTimeout(() => {
-
-                navigate(
-                    "/login",
-                    {
-                        replace: true,
-                    }
-                );
-
+                navigate("/login", { replace: true });
             }, 900);
-
         } catch (error) {
-
             console.error(
                 "PHONE VERIFICATION ERROR:",
                 error.response?.data || error
             );
 
-            const backendError =
-                error.response?.data;
+            const backendError = error.response?.data;
 
-            if (
-                backendError?.detail
-            ) {
-
-                setError(
-                    backendError.detail
-                );
-
-            } else if (
-                backendError?.error
-            ) {
-
-                setError(
-                    backendError.error
-                );
-
-            } else if (
-                typeof backendError === "string"
-            ) {
-
-                setError(
-                    backendError
-                );
-
-            } else {
-
-                setError(
-                    "Invalid or expired OTP."
-                );
-            }
-
-        } finally {
-
-            setLoading(false);
-
-        }
-    };
-
-
-    /*
-     * Resend placeholder
-     *
-     * The backend currently has no dedicated
-     * resend-phone-OTP endpoint.
-     *
-     * We will connect this after adding it
-     * properly on the backend.
-     */
-
-    const handleResend = async () => {
-
-        setError("");
-        setMessage("");
-        
-        try {
-        
-            setResendLoading(true);
-        
-            const data = await resendPhoneOTP({
-                phone_number: formatPhone(
-                    phoneNumber
-                ),
-            });
-        
-            setMessage(
-                data.message ||
-                "If the account exists and is not verified, a new OTP has been sent."
-            );
-        
-            setSeconds(60);
-        
-            setOtp("");
-        
-            otpInputRef.current?.focus();
-        
-        } catch (error) {
-        
-            console.error(
-                "RESEND OTP ERROR:",
-                error.response?.data || error
-            );
-        
-            const backendError =
-                error.response?.data;
-        
             setError(
                 backendError?.detail ||
                 backendError?.error ||
-                "Unable to resend OTP."
+                error.message ||
+                "Phone verification failed. Please try again."
             );
-        
         } finally {
-        
-            setResendLoading(false);
-        
+            setLoading(false);
         }
     };
 
-
     return (
-
         <div className="auth-page">
-
             <div className="auth-card verify-card">
 
                 {/* Back */}
-
                 <Link
                     to="/register"
                     className="verify-back"
                 >
                     <ArrowLeft size={17} />
-
                     Back to registration
                 </Link>
 
-
                 {/* Icon */}
-
                 <div className="verify-icon">
-
                     <Phone size={28} />
-
                 </div>
-
 
                 {/* Heading */}
-
                 <div className="auth-heading">
-
-                    <h1>
-                        Verify your phone
-                    </h1>
-
+                    <h1>Verify your phone</h1>
                     <p>
-                        Enter the 6-digit OTP sent to
-                        your mobile number.
+                        Enter the 6-digit OTP for your
+                        mobile number.
                     </p>
-
                 </div>
 
-
                 {/* Username */}
-
                 {usernameFromRegister && (
-
                     <div className="verify-user">
-
-                        Creating account for
+                        Creating account for{" "}
                         <strong>
                             {usernameFromRegister}
                         </strong>
-
                     </div>
-
                 )}
 
-
                 {/* Error */}
-
                 {error && (
-
                     <div className="auth-error">
                         {error}
                     </div>
-
                 )}
-
 
                 {/* Success */}
-
                 {message && (
-
                     <div className="auth-success">
-
                         <CheckCircle2 size={18} />
-
-                        <span>
-                            {message}
-                        </span>
-
+                        <span>{message}</span>
                     </div>
-
                 )}
 
+                {/* Firebase reCAPTCHA */}
+                <div id="recaptcha-container"></div>
 
+                {/* Verification form */}
                 <form
                     className="auth-form"
                     onSubmit={handleVerify}
                 >
-
                     {/* Phone */}
-
                     <div className="form-group">
-
                         <label htmlFor="verify-phone">
                             Mobile number
                         </label>
 
                         <div className="input-wrapper">
-
                             <Phone
                                 size={19}
                                 className="input-icon"
@@ -400,17 +286,13 @@ function VerifyPhone() {
                                 }
                                 placeholder="10-digit mobile number"
                                 autoComplete="tel"
+                                disabled={loading || resendLoading}
                             />
-
                         </div>
-
                     </div>
 
-
                     {/* OTP */}
-
                     <div className="form-group">
-
                         <label htmlFor="otp">
                             Verification code
                         </label>
@@ -426,39 +308,31 @@ function VerifyPhone() {
                             placeholder="000000"
                             value={otp}
                             onChange={(e) => {
-
-                                const value =
-                                    e.target.value
-                                        .replace(
-                                            /\D/g,
-                                            ""
-                                        )
-                                        .slice(0, 6);
+                                const value = e.target.value
+                                    .replace(/\D/g, "")
+                                    .slice(0, 6);
 
                                 setOtp(value);
-
                             }}
+                            disabled={!otpSent || loading}
                         />
 
                         <span className="otp-help">
-                            Enter the 6-digit code
-                            received on your phone.
+                            Enter the 6-digit test code
+                            configured in Firebase.
                         </span>
-
                     </div>
 
-
-                    {/* Verify */}
-
+                    {/* Verify button */}
                     <button
                         type="submit"
                         className="auth-submit"
                         disabled={
                             loading ||
+                            !otpSent ||
                             otp.length !== 6
                         }
                     >
-
                         {loading ? (
                             <>
                                 <span className="auth-spinner" />
@@ -470,31 +344,22 @@ function VerifyPhone() {
                                 Verify phone
                             </>
                         )}
-
                     </button>
-
                 </form>
 
-
-                {/* Resend */}
-
+                {/* Send / Resend OTP */}
                 <div className="resend-section">
-
                     {seconds > 0 ? (
-
                         <span>
                             Resend OTP in{" "}
-                            <strong>
-                                {seconds}s
-                            </strong>
+                            <strong>{seconds}s</strong>
                         </span>
-
                     ) : (
-
                         <span>
-                            Didn't receive the OTP?
+                            {otpSent
+                                ? "Didn't receive the OTP?"
+                                : "Ready to verify your number?"}
                         </span>
-
                     )}
 
                     <button
@@ -502,32 +367,27 @@ function VerifyPhone() {
                         className="resend-button"
                         disabled={
                             seconds > 0 ||
-                            resendLoading
+                            resendLoading ||
+                            loading
                         }
                         onClick={handleResend}
                     >
-                        Resend OTP
+                        {resendLoading
+                            ? "Requesting..."
+                            : otpSent
+                                ? "Resend OTP"
+                                : "Send OTP"}
                     </button>
-
                 </div>
 
-
                 {/* Login */}
-
                 <div className="auth-footer">
-
-                    <span>
-                        Already verified?
-                    </span>
-
+                    <span>Already verified?</span>
                     <Link to="/login">
                         Login
                     </Link>
-
                 </div>
-
             </div>
-
         </div>
     );
 }

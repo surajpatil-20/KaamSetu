@@ -1,3 +1,4 @@
+
 import {
     createContext,
     useContext,
@@ -7,43 +8,26 @@ import {
 
 import {
     loginUser,
+    logoutUser,
     getProfile,
+    getSessionStatus
 } from "../api/auth";
 
 const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {    
+export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
-
-    const [loading, setLoading] = useState(false);
-
-    const [accessToken, setAccessToken] = useState(
-        localStorage.getItem("accessToken")
-    );
+    const [loading, setLoading] = useState(true);
 
     const login = async (credentials) => {
         setLoading(true);
 
         try {
-            // Login
+            // Django validates credentials and sets HttpOnly cookies.
             const data = await loginUser(credentials);
 
-            // Save tokens
-            localStorage.setItem(
-                "accessToken",
-                data.access
-            );
-
-            localStorage.setItem(
-                "refreshToken",
-                data.refresh
-            );
-
-            setAccessToken(data.access);
-
-            // Get logged-in user profile
+            // No JWT is read or stored by React.
             const profile = await getProfile();
-
             setUser(profile);
 
             return {
@@ -55,56 +39,58 @@ export function AuthProvider({ children }) {
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-
-        setAccessToken(null);
-        setUser(null);
+    const logout = async () => {
+        try {
+            await logoutUser();
+        } finally {
+            setUser(null);
+        }
     };
 
-    // Restore user when page is refreshed
+
     useEffect(() => {
-        const loadProfile = async () => {
-            if (!accessToken) {
-                setLoading(false);
-                return;
-            }
-        
+        let cancelled = false;
+
+        const restoreSession = async () => {
             try {
-                setLoading(true);
-            
+                const session = await getSessionStatus();
+
+                if (!session.has_session) {
+                    if (!cancelled) setUser(null);
+                    return;
+                }
+
                 const profile = await getProfile();
-            
-                setUser(profile);
-            } catch (error) {
-                console.error("Failed to load profile:", error);
-            
-                // Only clear authentication when the token
-                // is actually rejected by the backend.
-                if (error.response?.status === 401) {
-                    localStorage.removeItem("accessToken");
-                    localStorage.removeItem("refreshToken");
-                
-                    setAccessToken(null);
+
+                if (!cancelled) {
+                    setUser(profile);
+                }
+            } catch {
+                if (!cancelled) {
                     setUser(null);
                 }
             } finally {
-                setLoading(false);
+                if (!cancelled) {
+                    setLoading(false);
+                }
             }
         };
-    
-        loadProfile();
-    }, [accessToken]);
+
+        restoreSession();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
 
     const value = {
         user,
         setUser,
-        accessToken,
         loading,
         login,
         logout,
-        isAuthenticated: !!accessToken,
+        isAuthenticated: !!user,
     };
 
     return (

@@ -24,6 +24,11 @@ import {
     resendPasswordOTP,
 } from "../../api/auth";
 
+import {
+    verifyPhoneOtp,
+    sendPhoneOtp,
+} from "../../firebasePhoneAuth";
+
 import "./ResetPassword.css";
 
 
@@ -100,30 +105,23 @@ function ResetPassword() {
 
     const handleVerifyOTP = async (e) => {
         e.preventDefault();
-
         setError("");
 
-        if (!identifier.trim()) {
-            setError(
-                "Enter your username or mobile number."
-            );
-            return;
-        }
-
         if (!/^\d{6}$/.test(otp)) {
-            setError(
-                "Enter the 6-digit OTP."
-            );
+            setError("Enter the 6-digit OTP.");
             return;
         }
 
         try {
             setLoading(true);
 
+            // Verify the SMS code through Firebase.
+            const result = await verifyPhoneOtp(otp);
+
+            // Ask Django to verify the Firebase ID token
+            // and issue the password-reset token.
             const data = await verifyResetOTP({
-                identifier:
-                    identifier.trim(),
-                otp,
+                id_token: result.idToken,
             });
 
             setResetData({
@@ -132,43 +130,23 @@ function ResetPassword() {
             });
 
             setOtpVerified(true);
-
-            setMessage(
-                "OTP verified. You can now create a new password."
-            );
-
-        } catch (error) {
+            setMessage("Phone verified. You can now create a new password.");
+        } catch (err) {
             console.error(
                 "RESET OTP ERROR:",
-                error.response?.data || error
+                err.response?.data || err
             );
 
-            const backendError =
-                error.response?.data;
-
-            if (
-                backendError?.detail
-            ) {
-                setError(
-                    backendError.detail
-                );
-            } else if (
-                backendError?.error
-            ) {
-                setError(
-                    backendError.error
-                );
-            } else {
-                setError(
-                    "Invalid or expired OTP."
-                );
-            }
-
+            setError(
+                err.response?.data?.detail ||
+                err.response?.data?.error ||
+                err.message ||
+                "Unable to verify the OTP."
+            );
         } finally {
             setLoading(false);
         }
     };
-
 
     /*
      * Resend OTP
@@ -181,39 +159,24 @@ function ResetPassword() {
         try {
             setResendLoading(true);
 
-            const data = await resendPasswordOTP({
-                identifier:
-                    identifier.trim(),
-            });
-
-            setMessage(
-                data.message
+            await sendPhoneOtp(
+                identifier,
+                "reset-password-recaptcha"
             );
-
-            setSeconds(60);
 
             setOtp("");
-
-        } catch (error) {
-            console.error(
-                "RESEND RESET OTP ERROR:",
-                error.response?.data || error
-            );
-
-            const backendError =
-                error.response?.data;
+            setSeconds(60);
+            setMessage("A new verification code has been sent.");
+        } catch (err) {
+            console.error("FIREBASE OTP RESEND ERROR:", err);
 
             setError(
-                backendError?.detail ||
-                backendError?.error ||
-                "Unable to resend OTP."
+                err.message || "Unable to resend OTP."
             );
-
         } finally {
             setResendLoading(false);
         }
     };
-
 
     /*
      * Reset password
@@ -355,6 +318,8 @@ function ResetPassword() {
                         }
                     </p>
                 </div>
+                
+                <div id="reset-password-recaptcha" />
 
 
                 {error && (

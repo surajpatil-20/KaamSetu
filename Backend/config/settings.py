@@ -51,12 +51,28 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
 ]
 
+
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "users.cookie_authentication.CookieJWTAuthentication",
     ),
     "EXCEPTION_HANDLER": "config.exception_handler.custom_exception_handler",
+
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "5/minute",
+        "register": "5/hour",
+        "password_reset": "3/minute",
+        "otp_verify": "5/minute",
+        "otp_resend": "3/minute",
+        "phone_verify": "5/minute",
+        "token_refresh": "10/minute",
+    },
 }
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -160,6 +176,23 @@ SIMPLE_JWT={
     'ACCESS_TOKEN_LIFETIME':timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME':timedelta(days=3)
 }
+
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+]
+
+# Local development only: use Secure=True in production with HTTPS.
+JWT_ACCESS_COOKIE = "kaamsetu_access"
+JWT_REFRESH_COOKIE = "kaamsetu_refresh"
+
+JWT_COOKIE_SECURE = False
+JWT_COOKIE_SAMESITE = "Lax"
+JWT_COOKIE_PATH = "/"
+
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = "Lax"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"

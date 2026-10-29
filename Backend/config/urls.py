@@ -23,6 +23,15 @@ from rest_framework_simplejwt.views import (
 from django.conf import settings
 from django.conf.urls.static import static
 
+from users.cookie_views import (
+    CookieLoginView,
+    CookieRefreshView,
+    CookieLogoutView,
+    csrf_cookie_view,
+    CookieSessionStatusView
+    
+)
+
 urlpatterns = [
     path("admin/", admin.site.urls),
 
@@ -32,13 +41,19 @@ urlpatterns = [
 
     path( "api/reviews/", include("reviews.urls")),
 
-    path("api/auth/login/",TokenObtainPairView.as_view(),name='token_obtain_pair'),
+    path("api/auth/login/", CookieLoginView.as_view(), name="token_obtain_pair"),
 
-    path("api/auth/refresh/",TokenRefreshView.as_view(),name='token_refresh'),
+    path("api/auth/refresh/", CookieRefreshView.as_view(), name="token_refresh"),
+    
+    path("api/auth/logout/", CookieLogoutView.as_view(), name="logout"),
+    
+    path("api/auth/csrf/", csrf_cookie_view, name="csrf"),
     
     path("api/works/", include("works.urls")),
 
     path("api/notifications/",include("notifications.urls")),
+        
+    path("api/auth/session/", CookieSessionStatusView.as_view(), name="session-status",),
 
 ]
 

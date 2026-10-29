@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+
 import {
     Search,
     MapPin,
@@ -71,8 +72,8 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
     const a =
         Math.sin(dLat / 2) ** 2 +
         Math.cos(toRadians(lat1)) *
-            Math.cos(toRadians(lat2)) *
-            Math.sin(dLon / 2) ** 2;
+        Math.cos(toRadians(lat2)) *
+        Math.sin(dLon / 2) ** 2;
 
     return (
         earthRadiusKm *
@@ -130,9 +131,11 @@ function AvailableWorks() {
     const [radius, setRadius] = useState("10");
     const [locationLoading, setLocationLoading] = useState(false);
     const [showJobsMap, setShowJobsMap] = useState(true);
-const [selectedMapJob, setSelectedMapJob] = useState(null);
+    const [selectedMapJob, setSelectedMapJob] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [worksPerPage] = useState(6);
 
-    
+
     const loadWorks = async (location = workerLocation, selectedRadius = radius) => {
         setLoading(true);
         setError("");
@@ -140,10 +143,10 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
         try {
             const filters = location
                 ? {
-                      latitude: location.latitude,
-                      longitude: location.longitude,
-                      radius: selectedRadius,
-                  }
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    radius: selectedRadius,
+                }
                 : {};
 
             const data = await getAvailableWorks(filters);
@@ -153,15 +156,15 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
 
             setError(
                 err.response?.data?.detail ||
-                    err.response?.data?.location?.[0] ||
-                    "Unable to load available jobs. Please try again."
+                err.response?.data?.location?.[0] ||
+                "Unable to load available jobs. Please try again."
             );
         } finally {
             setLoading(false);
         }
     };
 
-    
+
     const handleUseCurrentLocation = () => {
         setError("");
         setNotice("");
@@ -249,6 +252,19 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
         });
     }, [works, search, category, sort]);
 
+    const totalPages = Math.ceil(filteredWorks.length / worksPerPage);
+
+    const startIndex = (currentPage - 1) * worksPerPage;
+
+    const paginatedWorks = filteredWorks.slice(
+        startIndex,
+        startIndex + worksPerPage
+    );
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, category, sort, radius, workerLocation]);
+
     const updateApplicationForm = (workId, field, value) => {
         setApplicationForms((previous) => ({
             ...previous,
@@ -311,8 +327,8 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
                 data?.error ||
                 (data && typeof data === "object"
                     ? Object.values(data).flat().find(
-                          (value) => typeof value === "string"
-                      )
+                        (value) => typeof value === "string"
+                    )
                     : null) ||
                 "Could not submit your application. Please try again.";
 
@@ -368,7 +384,7 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
                     )}
                 </div>
 
-                
+
                 <div className="nearby-work-controls">
                     <button
                         type="button"
@@ -386,7 +402,7 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
                         onChange={async (event) => {
                             const newRadius = event.target.value;
                             setRadius(newRadius);
-                        
+
                             if (workerLocation) {
                                 await loadWorks(workerLocation, newRadius);
                             }
@@ -398,7 +414,7 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
                         <option value="25">Within 25 km</option>
                         <option value="50">Within 50 km</option>
                     </select>
-                    
+
                     {workerLocation && (
                         <button
                             type="button"
@@ -466,9 +482,9 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
                             center={
                                 workerLocation
                                     ? [
-                                          workerLocation.latitude,
-                                          workerLocation.longitude,
-                                      ]
+                                        workerLocation.latitude,
+                                        workerLocation.longitude,
+                                    ]
                                     : [16.705, 74.2433]
                             }
                             zoom={12}
@@ -526,22 +542,22 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
                                         <Popup>
                                             <div className="jobs-map-popup">
                                                 <strong>{work.title}</strong>
-                                    
+
                                                 <p>
                                                     {String(work.category || "Other")
                                                         .replaceAll("_", " ")}
                                                 </p>
-                                                    
+
                                                 <p>
                                                     <strong>Budget:</strong>{" "}
                                                     ₹{Number(work.budget || 0).toLocaleString("en-IN")}
                                                 </p>
-                                                    
+
                                                 <p>
                                                     <strong>Location:</strong>{" "}
                                                     {work.location || work.city || "Not specified"}
                                                 </p>
-                                                    
+
                                                 {work.work_date && (
                                                     <p>
                                                         <strong>Date:</strong>{" "}
@@ -554,7 +570,7 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
                                                     onClick={() => {
                                                         setSelectedMapJob(work.id);
                                                         setExpandedId(work.id);
-                                                    
+
                                                         document
                                                             .getElementById(
                                                                 `available-work-${work.id}`
@@ -572,7 +588,7 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
                                     </Marker>
                                 ))}
                         </MapContainer>
-                            
+
                         <p className="jobs-map-note">
                             {filteredWorks.filter(
                                 (work) =>
@@ -585,16 +601,15 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
                     </div>
                 )}
             </section>
-            
+
             <div className="available-results-heading">
                 <div>
                     <h2>Jobs for you</h2>
                     <p>
                         {loading
                             ? "Finding available jobs..."
-                            : `${filteredWorks.length} job${
-                                  filteredWorks.length === 1 ? "" : "s"
-                              } found`}
+                            : `${filteredWorks.length} job${filteredWorks.length === 1 ? "" : "s"
+                            } found`}
                     </p>
                 </div>
             </div>
@@ -654,8 +669,9 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
                     )}
                 </div>
             ) : (
-                <div className="available-jobs-grid">
-                    {filteredWorks.map((work) => {
+                <>
+                    <div className="available-jobs-grid">
+                    {paginatedWorks.map((work) => {
                         const form = applicationForms[work.id] || {
                             proposed_price: "",
                             message: "",
@@ -669,10 +685,9 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
                                 className="available-job-card"
                                 key={work.id}
                             >
-                                <div id={`available-work-${work.id}`} 
-                                    className={`available-job-card-top ${
-                                        selectedMapJob === work.id ? "map-job-selected" : ""
-                                    }`} 
+                                <div id={`available-work-${work.id}`}
+                                    className={`available-job-card-top ${selectedMapJob === work.id ? "map-job-selected" : ""
+                                        }`}
                                 >
                                     <span className="available-category-badge">
                                         {CATEGORIES.find(
@@ -701,7 +716,7 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
                                     </span>
                                 </div>
 
-                                
+
                                 {workerLocation &&
                                     work.latitude != null &&
                                     work.longitude != null && (
@@ -716,7 +731,7 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
                                             km away
                                         </div>
                                     )}
-                                
+
 
                                 <div className="available-job-budget">
                                     <span>Customer's budget</span>
@@ -814,6 +829,54 @@ const [selectedMapJob, setSelectedMapJob] = useState(null);
                         );
                     })}
                 </div>
+
+                {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <nav
+                    className="works-pagination"
+                    aria-label="Available works pages"
+                >
+                    <button
+                        type="button"
+                        disabled={currentPage === 1}
+                        onClick={() =>
+                            setCurrentPage((page) => page - 1)
+                        }
+                    >
+                        Previous
+                    </button>
+
+                    {Array.from(
+                        { length: totalPages },
+                        (_, index) => index + 1
+                    ).map((page) => (
+                        <button
+                            key={page}
+                            type="button"
+                            className={
+                                currentPage === page ? "active" : ""
+                            }
+                            aria-current={
+                                currentPage === page ? "page" : undefined
+                            }
+                            onClick={() => setCurrentPage(page)}
+                        >
+                            {page}
+                        </button>
+                    ))}
+
+                    <button
+                        type="button"
+                        disabled={currentPage === totalPages}
+                        onClick={() =>
+                            setCurrentPage((page) => page + 1)
+                        }
+                    >
+                        Next
+                    </button>
+                </nav>
+                    )}
+                </>
             )}
         </div>
     );

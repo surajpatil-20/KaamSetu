@@ -1,174 +1,119 @@
+
 import axios from "axios";
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,
+    withCredentials: true,
     headers: {
         "Content-Type": "application/json",
     },
 });
 
+function getCookie(name) {
+    const prefix = `${name}=`;
+    const cookie = document.cookie
+        .split("; ")
+        .find((item) => item.startsWith(prefix));
 
-/*
-|--------------------------------------------------------------------------
-| Attach access token
-|--------------------------------------------------------------------------
-*/
+    return cookie
+        ? decodeURIComponent(cookie.substring(prefix.length))
+        : null;
+}
 
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem("accessToken");
+let csrfRequest = null;
 
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+async function ensureCsrfCookie() {
+    if (getCookie("csrftoken")) {
+        return;
+    }
+
+    if (!csrfRequest) {
+        csrfRequest = api
+            .get("/auth/csrf/")
+            .finally(() => {
+                csrfRequest = null;
+            });
+    }
+
+    await csrfRequest;
+}
+
+const unsafeMethods = ["post", "put", "patch", "delete"];
+
+api.interceptors.request.use(async (config) => {
+    if (config.data instanceof FormData) {
+        delete config.headers["Content-Type"];
+    }
+
+    if (unsafeMethods.includes(config.method?.toLowerCase())) {
+        await ensureCsrfCookie();
+
+        const csrfToken = getCookie("csrftoken");
+
+        if (csrfToken) {
+            config.headers["X-CSRFToken"] = csrfToken;
         }
+    }
 
-        // Let the browser set the multipart boundary for file uploads.
-        if (config.data instanceof FormData) {
-            delete config.headers["Content-Type"];
-        }
+    return config;
+});
 
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
+let refreshPromise = null;
 
-
-/*
-|--------------------------------------------------------------------------
-| Refresh access token when it expires
-|--------------------------------------------------------------------------
-*/
-
-let isRefreshing = false;
-
-let refreshSubscribers = [];
-
-
-const subscribeTokenRefresh = (callback) => {
-    refreshSubscribers.push(callback);
-};
-
-
-const onRefreshed = (newToken) => {
-    refreshSubscribers.forEach((callback) => {
-        callback(newToken);
-    });
-
-    refreshSubscribers = [];
-};
-
+// These endpoints must work without an existing login session.
+const noRefreshUrls = [
+    "/auth/login/",
+    "/auth/register/",
+    "/auth/refresh/",
+    "/auth/logout/",
+    "/auth/csrf/",
+    "/auth/verify-phone/",
+    "/auth/forgot-password/",
+    "/auth/verify-otp/",
+    "/auth/reset-password/",
+    "/auth/resend-phone-otp/",
+    "/auth/resend-password-otp/",
+];
 
 api.interceptors.response.use(
     (response) => response,
-
     async (error) => {
-
         const originalRequest = error.config;
 
         if (
             error.response?.status !== 401 ||
-            originalRequest?._retry
+            !originalRequest ||
+            originalRequest._retry
         ) {
             return Promise.reject(error);
         }
 
+        const url = originalRequest.url || "";
 
-        /*
-        |--------------------------------------------------------------------------
-        | Don't try to refresh the refresh endpoint itself
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            originalRequest.url?.includes("/auth/refresh/")
-        ) {
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
-
+        // Never refresh tokens for public authentication endpoints.
+        if (noRefreshUrls.some((endpoint) => url.includes(endpoint))) {
             return Promise.reject(error);
         }
-
 
         originalRequest._retry = true;
 
-
-        const refreshToken = localStorage.getItem("refreshToken");
-
-        if (!refreshToken) {
-            localStorage.removeItem("accessToken");
-
-            return Promise.reject(error);
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Another request is already refreshing
-        |--------------------------------------------------------------------------
-        */
-
-        if (isRefreshing) {
-            return new Promise((resolve) => {
-
-                subscribeTokenRefresh((newToken) => {
-
-                    originalRequest.headers.Authorization =
-                        `Bearer ${newToken}`;
-
-                    resolve(api(originalRequest));
-
-                });
-
-            });
-        }
-
-
-        isRefreshing = true;
-
-
         try {
+            if (!refreshPromise) {
+                refreshPromise = api
+                    .post("/auth/refresh/")
+                    .finally(() => {
+                        refreshPromise = null;
+                    });
+            }
 
-            const response = await api.post(
-                "/auth/refresh/",
-                {
-                    refresh: refreshToken,
-                }
-            );
+            await refreshPromise;
 
-
-            const newAccessToken = response.data.access;
-
-            localStorage.setItem(
-                "accessToken",
-                newAccessToken
-            );
-
-
-            onRefreshed(newAccessToken);
-
-
-            originalRequest.headers.Authorization =
-                `Bearer ${newAccessToken}`;
-
-
+            // Retry the original request after refreshing the access cookie.
             return api(originalRequest);
-
         } catch (refreshError) {
-
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
-
-            refreshSubscribers = [];
-
             return Promise.reject(refreshError);
-
-        } finally {
-
-            isRefreshing = false;
-
         }
     }
 );
-
 
 export default api;

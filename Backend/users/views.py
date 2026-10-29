@@ -33,6 +33,14 @@ from .otp import (
     OTP_MAX_ATTEMPTS,
 )
 
+from .throttles import (
+    RegisterRateThrottle,
+    PasswordResetRateThrottle,
+    OTPVerifyRateThrottle,
+    OTPResendRateThrottle,
+    PhoneVerifyRateThrottle,
+)
+
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.contrib.auth.password_validation import validate_password
 
@@ -41,6 +49,8 @@ from .firebase_service import verify_firebase_phone_token
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [RegisterRateThrottle]
+    authentication_classes = []
 
 
 
@@ -190,6 +200,8 @@ class ProfileView(APIView):
 class VerifyPhoneView(generics.GenericAPIView):
     serializer_class = VerifyPhoneSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [PhoneVerifyRateThrottle]
+    authentication_classes = []
 
     @transaction.atomic
     def post(self, request):
@@ -254,7 +266,9 @@ class VerifyPhoneView(generics.GenericAPIView):
 class ForgotPasswordView(generics.GenericAPIView):
 
     serializer_class = ForgotPasswordSerializer
+    authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = [PasswordResetRateThrottle]
 
     def post(self, request):
 
@@ -345,122 +359,55 @@ class ForgotPasswordView(generics.GenericAPIView):
 
 
 class VerifyOTPView(generics.GenericAPIView):
-
-    serializer_class = VerifyOTPSerializer
+    authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = [OTPVerifyRateThrottle]
 
     @transaction.atomic
     def post(self, request):
+        id_token = request.data.get("id_token")
 
-        serializer = self.get_serializer(
-            data=request.data
-        )
+        if not id_token:
+            raise ValidationError({
+                "detail": "Firebase ID token is required."
+            })
 
-        serializer.is_valid(
-            raise_exception=True
-        )
+        try:
+            firebase_phone = verify_firebase_phone_token(id_token)
+        except ValueError:
+            raise ValidationError({
+                "detail": "Invalid or expired Firebase ID token."
+            })
 
-        identifier = serializer.validated_data[
-            "identifier"
-        ].strip()
+        if not firebase_phone.startswith("+91"):
+            raise ValidationError({
+                "detail": "Use a registered Indian mobile number."
+            })
 
-        otp = serializer.validated_data[
-            "otp"
-        ]
-
-        normalized_phone = (
-            identifier
-            .replace(" ", "")
-            .replace("-", "")
-        )
-
-        user = User.objects.filter(
-            username=identifier
+        user = User.objects.select_for_update().filter(
+            phone_number=firebase_phone,
+            phone_verified=True,
         ).first()
-
-        if user is None and normalized_phone.isdigit():
-            user = User.objects.filter(
-                phone_number="+91" + normalized_phone
-            ).first()
 
         if user is None:
-            raise ValidationError(
-                "Invalid OTP."
-            )
+            raise ValidationError({
+                "detail": "No verified KaamSetu account matches this phone number."
+            })
 
-        otp_record = PasswordResetOTP.objects.filter(
-            user=user,
-            is_used=False
-        ).order_by(
-            "-created_at"
-        ).first()
-
-        if otp_record is None:
-            raise ValidationError(
-                "Invalid or expired OTP."
-            )
-
-        if otp_record.expires_at < timezone.now():
-
-            otp_record.is_used = True
-            otp_record.save(
-                update_fields=["is_used"]
-            )
-
-            raise ValidationError(
-                "OTP has expired."
-            )
-
-        if otp_record.attempts >= OTP_MAX_ATTEMPTS:
-
-            otp_record.is_used = True
-            otp_record.save(
-                update_fields=["is_used"]
-            )
-
-            raise ValidationError(
-                "Too many OTP attempts. Request a new OTP."
-            )
-
-        otp_record.attempts += 1
-
-        if not verify_otp_hash(
-            otp,
-            otp_record.otp_hash
-        ):
-
-            otp_record.save(
-                update_fields=["attempts"]
-            )
-
-            raise ValidationError(
-                "Invalid OTP."
-            )
-
-        otp_record.is_used = True
-
-        otp_record.save(
-            update_fields=[
-                "attempts",
-                "is_used"
-            ]
-        )
-
-        # Generate Django password-reset token.
-        token = default_token_generator.make_token(
-            user
-        )
+        token = default_token_generator.make_token(user)
 
         return Response({
-            "message": "OTP verified successfully.",
+            "message": "Phone verified successfully.",
             "uid": user.id,
-            "reset_token": token
+            "reset_token": token,
         })
 
 class ResetPasswordView(generics.GenericAPIView):
 
     serializer_class = ResetPasswordSerializer
+    authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = [PasswordResetRateThrottle]
 
     @transaction.atomic
     def post(self, request):
@@ -514,6 +461,8 @@ class ResendPhoneOTPView(generics.GenericAPIView):
 
 
     permission_classes = [AllowAny]
+    throttle_classes = [OTPResendRateThrottle]
+    authentication_classes = []
 
     def post(self, request):
 
@@ -604,8 +553,9 @@ class ResendPasswordResetOTPView(
 ):
 
     serializer_class = ForgotPasswordSerializer
-
+    authentication_classes = []
     permission_classes = [AllowAny]
+    throttle_classes = [OTPResendRateThrottle]
 
     def post(self, request):
 

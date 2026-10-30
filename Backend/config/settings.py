@@ -25,11 +25,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
-
+if not SECRET_KEY:
+    raise ValueError("DJANGO_SECRET_KEY is not configured")
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",")
+    if host.strip()
+]
 
 
 # Application definition
@@ -76,6 +81,7 @@ REST_FRAMEWORK = {
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -167,7 +173,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
 ]
 
 AUTH_USER_MODEL = "users.User"
@@ -180,15 +188,17 @@ SIMPLE_JWT={
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
+    origin.strip()
+    for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
 ]
 
 # Local development only: use Secure=True in production with HTTPS.
 JWT_ACCESS_COOKIE = "kaamsetu_access"
 JWT_REFRESH_COOKIE = "kaamsetu_refresh"
 
-JWT_COOKIE_SECURE = False
-JWT_COOKIE_SAMESITE = "Lax"
+JWT_COOKIE_SECURE = not DEBUG
+JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE", "Lax")
 JWT_COOKIE_PATH = "/"
 
 CSRF_COOKIE_HTTPONLY = False
@@ -233,3 +243,5 @@ LOGGING = {
     },
 }
 
+
+STATIC_ROOT = BASE_DIR / "staticfiles"

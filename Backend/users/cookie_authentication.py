@@ -5,7 +5,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from django.middleware.csrf import CsrfViewMiddleware
-
+from rest_framework.exceptions import AuthenticationFailed
 
 def enforce_csrf(request):
     """
@@ -46,6 +46,11 @@ class CookieJWTAuthentication(BaseAuthentication):
                 raw_token
             )
             user = jwt_auth.get_user(validated_token)
+            
+            if not user.phone_verified:
+                raise AuthenticationFailed(
+                    "Please verify your phone number before accessing your account."
+                )
 
         except (InvalidToken, TokenError, AuthenticationFailed) as exc:
             raise AuthenticationFailed(

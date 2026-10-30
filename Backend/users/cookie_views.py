@@ -8,12 +8,25 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError ,AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
 from .cookie_authentication import enforce_csrf
 from .throttles import LoginRateThrottle, TokenRefreshRateThrottle
+
+class VerifiedPhoneTokenObtainPairSerializer(
+    TokenObtainPairSerializer
+):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        if not self.user.phone_verified:
+            raise AuthenticationFailed(
+                "Please verify your phone number before logging in."
+            )
+
+        return data
 
 
 def set_auth_cookies(response, access_token, refresh_token=None):
@@ -71,10 +84,13 @@ class CookieLoginView(APIView):
     def post(self, request):
         enforce_csrf(request)
 
-        serializer = TokenObtainPairSerializer(data=request.data)
+        serializer = VerifiedPhoneTokenObtainPairSerializer(
+            data=request.data
+        )
         serializer.is_valid(raise_exception=True)
 
         tokens = serializer.validated_data
+
         response = Response(
             {"message": "Login successful."},
             status=status.HTTP_200_OK,

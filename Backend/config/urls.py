@@ -1,20 +1,4 @@
-from django.http import HttpResponse
 
-
-def google_site_verification(request):
-    return HttpResponse("""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta name="google-site-verification"
-                  content="03zrVClyI3wJK6YTv57IF0bUD93xg3khlwwHKlODy6M" />
-            <title>KaamSetu</title>
-        </head>
-        <body>
-            KaamSetu
-        </body>
-        </html>
-    """)
 
 """
 URL configuration for config project.

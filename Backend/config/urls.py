@@ -1,3 +1,21 @@
+from django.http import HttpResponse
+
+
+def google_site_verification(request):
+    return HttpResponse("""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="google-site-verification"
+                  content="03zrVClyI3wJK6YTv57IF0bUD93xg3khlwwHKlODy6M" />
+            <title>KaamSetu</title>
+        </head>
+        <body>
+            KaamSetu
+        </body>
+        </html>
+    """)
+
 """
 URL configuration for config project.
 
@@ -33,6 +51,7 @@ from users.cookie_views import (
 )
 
 urlpatterns = [
+    path("", google_site_verification, name="google_site_verification"),
     path("admin/", admin.site.urls),
 
     path("api/auth/",include('users.urls')),

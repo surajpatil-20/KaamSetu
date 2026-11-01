@@ -12,6 +12,7 @@ from rest_framework.exceptions import ValidationError ,AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
+from django.middleware.csrf import get_token
 from .cookie_authentication import enforce_csrf
 from .throttles import LoginRateThrottle, TokenRefreshRateThrottle
 
@@ -73,7 +74,12 @@ def clear_auth_cookies(response):
 # Use a normal Django view so CSRF middleware can set the cookie.
 @ensure_csrf_cookie
 def csrf_cookie_view(request):
-    return JsonResponse({"detail": "CSRF cookie set."})
+    csrf_token = get_token(request)
+
+    return JsonResponse({
+        "detail": "CSRF cookie set.",
+        "csrfToken": csrf_token,
+    })
 
 
 class CookieLoginView(APIView):

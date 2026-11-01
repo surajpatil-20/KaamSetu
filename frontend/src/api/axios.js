@@ -9,27 +9,25 @@ const api = axios.create({
     },
 });
 
-function getCookie(name) {
-    const prefix = `${name}=`;
-    const cookie = document.cookie
-        .split("; ")
-        .find((item) => item.startsWith(prefix));
-
-    return cookie
-        ? decodeURIComponent(cookie.substring(prefix.length))
-        : null;
-}
-
+// Obtain the CSRF token from the backend response.
 let csrfRequest = null;
+let csrfToken = null;
 
 async function ensureCsrfCookie() {
-    if (getCookie("csrftoken")) {
+    if (csrfToken) {
         return;
     }
 
     if (!csrfRequest) {
         csrfRequest = api
             .get("/auth/csrf/")
+            .then((response) => {
+                csrfToken = response.data.csrfToken;
+
+                if (!csrfToken) {
+                    throw new Error("CSRF token was not returned by backend.");
+                }
+            })
             .finally(() => {
                 csrfRequest = null;
             });
@@ -48,11 +46,7 @@ api.interceptors.request.use(async (config) => {
     if (unsafeMethods.includes(config.method?.toLowerCase())) {
         await ensureCsrfCookie();
 
-        const csrfToken = getCookie("csrftoken");
-
-        if (csrfToken) {
-            config.headers["X-CSRFToken"] = csrfToken;
-        }
+        config.headers["X-CSRFToken"] = csrfToken;
     }
 
     return config;

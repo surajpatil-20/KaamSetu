@@ -51,7 +51,6 @@ from users.cookie_views import (
 )
 
 urlpatterns = [
-    path("", google_site_verification, name="google_site_verification"),
     path("admin/", admin.site.urls),
 
     path("api/auth/",include('users.urls')),

@@ -249,3 +249,21 @@ LOGGING = {
 
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STORAGES = {
+    "default": {
+        "BACKEND": "config.storage.SupabasePublicStorage",
+        "OPTIONS": {
+            "access_key": os.getenv("SUPABASE_S3_ACCESS_KEY_ID"),
+            "secret_key": os.getenv("SUPABASE_S3_SECRET_ACCESS_KEY"),
+            "bucket_name": os.getenv("SUPABASE_STORAGE_BUCKET"),
+            "endpoint_url": os.getenv("SUPABASE_S3_ENDPOINT"),
+            "region_name": os.getenv("SUPABASE_S3_REGION"),
+            "default_acl": None,
+            "querystring_auth": False,
+        },
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}

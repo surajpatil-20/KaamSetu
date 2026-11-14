@@ -2,6 +2,7 @@
 import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
+  signOut,
 } from "firebase/auth";
 
 import { firebaseAuth } from "./firebase";
@@ -55,8 +56,16 @@ export async function verifyPhoneOtp(code) {
   };
 }
 
-export function clearPhoneOtp() {
+export async function clearPhoneOtp() {
   recaptchaVerifier?.clear();
   recaptchaVerifier = null;
   confirmationResult = null;
+
+  try {
+    if (firebaseAuth.currentUser) {
+      await signOut(firebaseAuth);
+    }
+  } catch {
+    // Non-blocking cleanup
+  }
 }

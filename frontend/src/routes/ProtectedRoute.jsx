@@ -2,6 +2,7 @@ import { Navigate, Outlet } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 
+import RefreshLoader from "../components/RefreshLoader";
 function ProtectedRoute() {
 
     const {
@@ -10,11 +11,11 @@ function ProtectedRoute() {
     } = useAuth();
 
     if (loading) {
-        return <p>Loading...</p>;
+        return <RefreshLoader />;
     }
 
     if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to=    "/login" replace />;
     }
     
     return <Outlet />;

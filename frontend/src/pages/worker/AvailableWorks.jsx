@@ -134,6 +134,21 @@ function AvailableWorks() {
     const [selectedMapJob, setSelectedMapJob] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [worksPerPage] = useState(6);
+    const [previewModalImage, setPreviewModalImage] = useState(null);
+
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            if (event.key === "Escape") {
+                setPreviewModalImage(null);
+            }
+        };
+
+        if (previewModalImage) {
+            window.addEventListener("keydown", handleKeyDown);
+        }
+
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [previewModalImage]);
 
 
     const loadWorks = async (location = workerLocation, selectedRadius = radius) => {
@@ -701,6 +716,27 @@ function AvailableWorks() {
 
                                 <h3>{work.title}</h3>
 
+                                {Array.isArray(work.photos) && work.photos.length > 0 && (
+                                    <div className="available-job-photos">
+                                        {work.photos.slice(0, 3).map((photo, index) => (
+                                            <button
+                                                type="button"
+                                                key={photo.id || index}
+                                                className="available-job-photo-btn"
+                                                onClick={() => setPreviewModalImage(photo.image)}
+                                                title="Click to view full photo"
+                                                aria-label={`View photo ${index + 1} for ${work.title}`}
+                                            >
+                                                <img
+                                                    src={photo.image}
+                                                    alt={`${work.title} photo ${index + 1}`}
+                                                    loading="lazy"
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
                                 <p className="available-job-description">
                                     {work.description || "No description provided."}
                                 </p>
@@ -877,6 +913,35 @@ function AvailableWorks() {
                 </nav>
                     )}
                 </>
+            )}
+
+            {previewModalImage && (
+                <div
+                    className="photo-lightbox-overlay"
+                    onClick={() => setPreviewModalImage(null)}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Work photo preview"
+                >
+                    <div
+                        className="photo-lightbox-content"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            className="photo-lightbox-close"
+                            onClick={() => setPreviewModalImage(null)}
+                            aria-label="Close photo preview"
+                        >
+                            <X size={20} />
+                        </button>
+                        <img
+                            src={previewModalImage}
+                            alt="Work photo enlarged"
+                            className="photo-lightbox-img"
+                        />
+                    </div>
+                </div>
             )}
         </div>
     );

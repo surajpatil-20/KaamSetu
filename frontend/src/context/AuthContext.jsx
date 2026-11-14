@@ -40,10 +40,13 @@ export function AuthProvider({ children }) {
     };
 
     const logout = async () => {
+        setLoading(true);
+
         try {
             await logoutUser();
         } finally {
             setUser(null);
+            setLoading(false);
         }
     };
 

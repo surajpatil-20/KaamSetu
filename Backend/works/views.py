@@ -44,6 +44,8 @@ class WorkListCreateView(generics.ListCreateAPIView):
             ).select_related(
                 "customer",
                 "selected_worker"
+            ).prefetch_related(
+                "photos"
             ).order_by(
                 "-created_at"
             )
@@ -54,6 +56,8 @@ class WorkListCreateView(generics.ListCreateAPIView):
                 selected_worker__isnull=True
             ).select_related(
                 "customer"
+            ).prefetch_related(
+                "photos"
             ).order_by(
                 "-created_at"
             )
@@ -85,6 +89,8 @@ class WorkDetailView(generics.RetrieveAPIView):
             ).select_related(
                 "customer",
                 "selected_worker"
+            ).prefetch_related(
+                "photos"
             )
 
         if user.role == User.Role.WORKER:
@@ -94,12 +100,16 @@ class WorkDetailView(generics.RetrieveAPIView):
             ).select_related(
                 "customer",
                 "selected_worker"
+            ).prefetch_related(
+                "photos"
             ) | Work.objects.filter(
                 status=Work.Status.OPEN,
                 selected_worker__isnull=True
             ).select_related(
                 "customer",
                 "selected_worker"
+            ).prefetch_related(
+                "photos"
             )
 
         return Work.objects.none()
@@ -118,7 +128,7 @@ class ManageWorkView(generics.RetrieveUpdateDestroyAPIView):
 
         return Work.objects.filter(
             customer=self.request.user
-        )
+        ).prefetch_related("photos")
     
 
 class WorkPhotoCreateView(generics.CreateAPIView):
@@ -127,18 +137,40 @@ class WorkPhotoCreateView(generics.CreateAPIView):
 
     permission_classes = [
         IsAuthenticated,
-        IsCustomer
+        IsCustomer,
     ]
 
+    def get_work(self):
+        if not hasattr(self, "_work"):
+            work_id = self.kwargs["work_id"]
+            work = get_object_or_404(Work, id=work_id)
+
+            if work.customer != self.request.user:
+                raise PermissionDenied(
+                    "Only the customer who owns this work can upload photos."
+                )
+
+            self._work = work
+
+        return self._work
+
+    def create(self, request, *args, **kwargs):
+        work = self.get_work()
+
+        if work.photos.count() >= 3:
+            raise ValidationError(
+                {"detail": "A maximum of 3 photos per work is allowed."}
+            )
+
+        return super().create(request, *args, **kwargs)
+
     def perform_create(self, serializer):
+        work = self.get_work()
 
-        work_id = self.kwargs["work_id"]
-
-        work = get_object_or_404(
-            Work,
-            id=work_id,
-            customer=self.request.user
-        )
+        if work.photos.count() >= 3:
+            raise ValidationError(
+                {"detail": "A maximum of 3 photos per work is allowed."}
+            )
 
         serializer.save(work=work)
 
@@ -318,6 +350,8 @@ class MyWorksView(generics.ListAPIView):
             ).select_related(
                 "customer",
                 "selected_worker"
+            ).prefetch_related(
+                "photos"
             ).order_by("-created_at")
 
         if user.role == User.Role.WORKER:
@@ -326,6 +360,8 @@ class MyWorksView(generics.ListAPIView):
             ).select_related(
                 "customer",
                 "selected_worker"
+            ).prefetch_related(
+                "photos"
             ).order_by("-created_at")
 
         return Work.objects.none()
@@ -348,6 +384,8 @@ class AvailableWorksView(generics.ListAPIView):
         ).select_related(
             "customer",
             "selected_worker",
+        ).prefetch_related(
+            "photos"
         ).order_by(
             "-created_at"
         )

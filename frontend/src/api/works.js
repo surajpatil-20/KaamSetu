@@ -25,10 +25,17 @@ export const deleteWork = async (id) => {
     return response.data;
 };
 
-export const uploadWorkPhoto = async (workId, formData) => {
+export const uploadWorkPhoto = async (workId, fileOrFormData) => {
+    let payload = fileOrFormData;
+
+    if (!(fileOrFormData instanceof FormData)) {
+        payload = new FormData();
+        payload.append("image", fileOrFormData);
+    }
+
     const response = await api.post(
         `/works/${workId}/photos/`,
-        formData,
+        payload,
         {
             headers: {
                 "Content-Type": "multipart/form-data",

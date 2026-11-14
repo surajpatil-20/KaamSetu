@@ -16,9 +16,12 @@ import {
     MapPin,
     Crosshair,
     LoaderCircle,
+    Image as ImageIcon,
+    UploadCloud,
+    Trash2,
 } from "lucide-react";
 
-import { createWork } from "../../api/works";
+import { createWork, uploadWorkPhoto } from "../../api/works";
 import "leaflet/dist/leaflet.css";
 import "./PostWork.css";
 
@@ -82,6 +85,91 @@ function PostWork() {
     const [lookingUp, setLookingUp] = useState(false);
     const [error, setError] = useState("");
     const [locationMessage, setLocationMessage] = useState("");
+
+    const [selectedPhotos, setSelectedPhotos] = useState([]);
+    const [photoError, setPhotoError] = useState("");
+    const [uploadStatus, setUploadStatus] = useState("");
+
+    const MAX_PHOTOS = 3;
+    const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+    const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"];
+    const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+    useEffect(() => {
+        return () => {
+            selectedPhotos.forEach((photo) => {
+                if (photo.previewUrl) {
+                    URL.revokeObjectURL(photo.previewUrl);
+                }
+            });
+        };
+    }, [selectedPhotos]);
+
+    const handlePhotoSelect = (event) => {
+        setPhotoError("");
+        const files = Array.from(event.target.files || []);
+        if (!files.length) return;
+
+        event.target.value = "";
+
+        const availableSlots = MAX_PHOTOS - selectedPhotos.length;
+        if (availableSlots <= 0) {
+            setPhotoError(`You have already selected the maximum of ${MAX_PHOTOS} photos.`);
+            return;
+        }
+
+        if (files.length > availableSlots) {
+            setPhotoError(
+                `You can only add ${availableSlots} more photo${availableSlots === 1 ? "" : "s"}. Maximum ${MAX_PHOTOS} photos allowed.`
+            );
+            return;
+        }
+
+        const newPhotos = [];
+        for (const file of files) {
+            const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+            const isValidType = ALLOWED_MIME_TYPES.includes(file.type);
+            const isValidExt = ALLOWED_EXTENSIONS.includes(ext);
+
+            if (!isValidType && !isValidExt) {
+                setPhotoError(
+                    `"${file.name}" is not a supported image format. Please select JPG, JPEG, PNG, or WebP images.`
+                );
+                return;
+            }
+
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+                setPhotoError(
+                    `"${file.name}" exceeds the 5 MB limit (${(file.size / (1024 * 1024)).toFixed(1)} MB).`
+                );
+                return;
+            }
+
+            newPhotos.push({
+                id: `${file.name}-${file.lastModified}-${Math.random().toString(36).substring(2, 9)}`,
+                file,
+                previewUrl: URL.createObjectURL(file),
+                name: file.name,
+                sizeFormatted:
+                    file.size > 1024 * 1024
+                        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+                        : `${Math.round(file.size / 1024)} KB`,
+            });
+        }
+
+        setSelectedPhotos((previous) => [...previous, ...newPhotos]);
+    };
+
+    const handleRemovePhoto = (idToRemove) => {
+        setPhotoError("");
+        setSelectedPhotos((previous) => {
+            const item = previous.find((p) => p.id === idToRemove);
+            if (item?.previewUrl) {
+                URL.revokeObjectURL(item.previewUrl);
+            }
+            return previous.filter((p) => p.id !== idToRemove);
+        });
+    };
 
     const handleChange = (event) => {
         const { name, value } = event.target;
@@ -156,18 +244,21 @@ function PostWork() {
     };
 
     const selectCoordinates = (latitude, longitude) => {
-        setPosition([latitude, longitude]);
+        const roundedLatitude = Number(latitude.toFixed(6));
+        const roundedLongitude = Number(longitude.toFixed(6));
+
+        setPosition([roundedLatitude, roundedLongitude]);
 
         setFormData((previous) => ({
             ...previous,
-            latitude,
-            longitude,
+            latitude: roundedLatitude,
+            longitude: roundedLongitude,
         }));
 
-        reverseGeocode(latitude, longitude);
+        reverseGeocode(roundedLatitude, roundedLongitude);
     };
 
-    
+
     const useCurrentLocation = () => {
         setError("");
         setLocationMessage("");
@@ -292,6 +383,7 @@ function PostWork() {
 
         try {
             setLoading(true);
+            setUploadStatus("Creating work...");
 
             const work = await createWork({
                 title: formData.title.trim(),
@@ -307,6 +399,39 @@ function PostWork() {
                 work_date: formData.work_date,
             });
 
+            if (selectedPhotos.length > 0) {
+                const totalPhotos = Math.min(selectedPhotos.length, MAX_PHOTOS);
+                for (let i = 0; i < totalPhotos; i++) {
+                    setUploadStatus(
+                        `Uploading photo ${i + 1} of ${totalPhotos}...`
+                    );
+                    try {
+                        await uploadWorkPhoto(work.id, selectedPhotos[i].file);
+                    } catch (photoErr) {
+                        console.error("Failed to upload photo:", photoErr);
+                        const backendErr = photoErr.response?.data;
+                        const msg =
+                            backendErr?.error ||
+                            backendErr?.detail ||
+                            (backendErr?.image
+                                ? Array.isArray(backendErr.image)
+                                    ? backendErr.image[0]
+                                    : backendErr.image
+                                : null) ||
+                            "Failed to upload photo.";
+
+                        const formattedMsg =
+                            typeof msg === "string" ? msg : "Upload failed.";
+                        setError(
+                            `Work created, but photo ${i + 1} could not be uploaded (${formattedMsg}). Please check your work details.`
+                        );
+                        setLoading(false);
+                        setUploadStatus("");
+                        return;
+                    }
+                }
+            }
+
             navigate(`/customer/works/${work.id}`);
         } catch (err) {
             console.error("Failed to create work:", err);
@@ -314,7 +439,14 @@ function PostWork() {
             const backendError = err.response?.data;
 
             if (backendError?.error) {
-                setError(backendError.error);
+                setError(
+                    typeof backendError.error === "string"
+                        ? backendError.error
+                        : Array.isArray(backendError.error)
+                            ? backendError.error[0]
+                            : Object.values(backendError.error)[0] ||
+                            "Failed to create work."
+                );
             } else if (
                 backendError &&
                 typeof backendError === "object"
@@ -331,6 +463,7 @@ function PostWork() {
             }
         } finally {
             setLoading(false);
+            setUploadStatus("");
         }
     };
 
@@ -410,6 +543,103 @@ function PostWork() {
                             <option value="MOVING">Moving</option>
                             <option value="OTHER">Other</option>
                         </select>
+                    </div>
+                </section>
+
+                <section className="form-section">
+                    <div className="form-section-header">
+                        <div className="form-section-icon">
+                            <ImageIcon size={19} />
+                        </div>
+                        <div className="form-section-title-wrap">
+                            <div>
+                                <h2>Work Photos</h2>
+                                <p>
+                                    Upload up to 3 photos to help workers understand the work requirements.
+                                </p>
+                            </div>
+                            <span className="photo-count-badge">
+                                Photos ({selectedPhotos.length}/{MAX_PHOTOS})
+                            </span>
+                        </div>
+                    </div>
+
+                    {photoError && (
+                        <div className="photo-error-message" role="alert">
+                            {photoError}
+                        </div>
+                    )}
+
+                    <div className="photo-upload-container">
+                        {selectedPhotos.length < MAX_PHOTOS && (
+                            <label className="photo-dropzone">
+                                <input
+                                    type="file"
+                                    multiple
+                                    accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                                    onChange={handlePhotoSelect}
+                                    disabled={loading}
+                                    className="photo-file-input"
+                                />
+                                <div className="photo-dropzone-content">
+                                    <div className="photo-dropzone-icon">
+                                        <UploadCloud size={24} />
+                                    </div>
+                                    <div>
+                                        <p className="photo-dropzone-title">
+                                            Click to browse or select photos
+                                        </p>
+                                        <p className="photo-dropzone-subtitle">
+                                            JPG, JPEG, PNG, or WebP &bull; Max 5 MB each &bull; Up to {MAX_PHOTOS - selectedPhotos.length} more
+                                        </p>
+                                    </div>
+                                </div>
+                            </label>
+                        )}
+
+                        {selectedPhotos.length >= MAX_PHOTOS && (
+                            <div className="photo-limit-reached">
+                                <ImageIcon size={18} />
+                                <span>Maximum 3 photos selected. Remove a photo to select a different one.</span>
+                            </div>
+                        )}
+
+                        {selectedPhotos.length > 0 && (
+                            <div className="photo-previews-grid">
+                                {selectedPhotos.map((photo, index) => (
+                                    <div key={photo.id} className="photo-preview-card">
+                                        <div className="photo-preview-image-wrapper">
+                                            <img
+                                                src={photo.previewUrl}
+                                                alt={`Selected preview ${index + 1}`}
+                                                className="photo-preview-img"
+                                            />
+                                            <span className="photo-index-tag">
+                                                Photo {index + 1}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                className="photo-remove-btn"
+                                                onClick={() => handleRemovePhoto(photo.id)}
+                                                disabled={loading}
+                                                title="Remove photo"
+                                                aria-label={`Remove photo ${index + 1}`}
+                                            >
+                                                <Trash2 size={15} />
+                                            </button>
+                                        </div>
+                                        <div className="photo-preview-info">
+                                            <span className="photo-preview-name" title={photo.name}>
+                                                {photo.name}
+                                            </span>
+                                            <span className="photo-preview-size">
+                                                {photo.sizeFormatted}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </section>
 
@@ -605,7 +835,7 @@ function PostWork() {
                         className="submit-work-button"
                         disabled={loading || lookingUp}
                     >
-                        {loading ? "Posting..." : "Post Work"}
+                        {loading ? (uploadStatus || "Posting...") : "Post Work"}
                     </button>
                 </div>
             </form>

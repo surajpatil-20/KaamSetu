@@ -1,4 +1,5 @@
 
+import os
 from rest_framework import serializers
 
 from .models import Work, WorkPhoto
@@ -18,6 +19,27 @@ class WorkPhotoSerializer(serializers.ModelSerializer):
             "id",
             "uploaded_at",
         ]
+
+    def validate_image(self, value):
+        if not value:
+            raise serializers.ValidationError("An image file is required.")
+
+        content_type = getattr(value, "content_type", "")
+        if content_type and not content_type.startswith("image/"):
+            raise serializers.ValidationError("Only image files are accepted.")
+
+        ext = os.path.splitext(value.name)[1].lower()
+        allowed_extensions = [".jpg", ".jpeg", ".png", ".webp"]
+        if ext not in allowed_extensions:
+            raise serializers.ValidationError(
+                f"Unsupported image format '{ext}'. Allowed formats: JPG, JPEG, PNG, WebP."
+            )
+
+        if value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("Image file size must not exceed 5 MB.")
+
+        return value
+
 
 
 class WorkSerializer(serializers.ModelSerializer):

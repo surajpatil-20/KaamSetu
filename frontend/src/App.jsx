@@ -35,13 +35,11 @@ import WorkerNotifications from "./pages/worker/WorkerNotifications";
 import WorkerReviews from "./pages/worker/WorkerReviews";
 
 import ChangePassword from "./pages/auth/ChangePassword";
-import RefreshLoader from "./components/RefreshLoader";
 
 function App() {
     
     return (
         <>
-        <RefreshLoader />
         <Routes>
 
             {/* Public Routes */}
